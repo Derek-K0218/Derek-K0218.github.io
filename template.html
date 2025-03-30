@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Movable Container with Grid Boxes</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      position: absolute;
+      top: 100px;
+      left: 100px;
+      width: 500px;
+      height: 400px;
+      background-color: white;
+      border: 2px solid #333;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .header {
+      padding: 10px;
+      background-color: #333;
+      color: white;
+      cursor: move;
+      user-select: none;
+    }
+
+    .content {
+      padding: 10px;
+      height: calc(100% - 40px);
+      display: flex;
+      gap: 10px;
+      overflow: auto;
+    }
+
+    .grid-box {
+      width: 200px;
+      height: 300px;
+      background-color: #e0e0e0;
+      border: 1px solid #999;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(7, 1fr);
+      gap: 4px;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    .grid-item {
+      background-color: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+
+    .resizer {
+      width: 15px;
+      height: 15px;
+      background: #333;
+      position: absolute;
+      z-index: 10;
+    }
+
+    .top-left { top: -8px; left: -8px; cursor: nwse-resize; }
+    .top-right { top: -8px; right: -8px; cursor: nesw-resize; }
+    .bottom-left { bottom: -8px; left: -8px; cursor: nesw-resize; }
+    .bottom-right { bottom: -8px; right: -8px; cursor: nwse-resize; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="box">
+  <div class="header" id="header">Drag Me</div>
+  <div class="content">
+    <div class="grid-box">
+      <!-- 2x7 grid items -->
+      <div class="grid-item">1</div>
+      <div class="grid-item">2</div>
+      <div class="grid-item">3</div>
+      <div class="grid-item">4</div>
+      <div class="grid-item">5</div>
+      <div class="grid-item">6</div>
+      <div class="grid-item">7</div>
+      <div class="grid-item">8</div>
+      <div class="grid-item">9</div>
+      <div class="grid-item">10</div>
+      <div class="grid-item">11</div>
+      <div class="grid-item">12</div>
+      <div class="grid-item">13</div>
+      <div class="grid-item">14</div>
+    </div>
+    <div class="grid-box">
+      <!-- 2x7 grid items -->
+      <div class="grid-item">A</div>
+      <div class="grid-item">B</div>
+      <div class="grid-item">C</div>
+      <div class="grid-item">D</div>
+      <div class="grid-item">E</div>
+      <div class="grid-item">F</div>
+      <div class="grid-item">G</div>
+      <div class="grid-item">H</div>
+      <div class="grid-item">I</div>
+      <div class="grid-item">J</div>
+      <div class="grid-item">K</div>
+      <div class="grid-item">L</div>
+      <div class="grid-item">M</div>
+      <div class="grid-item">N</div>
+    </div>
+  </div>
+
+  <!-- Resizers -->
+  <div class="resizer top-left" data-corner="top-left"></div>
+  <div class="resizer top-right" data-corner="top-right"></div>
+  <div class="resizer bottom-left" data-corner="bottom-left"></div>
+  <div class="resizer bottom-right" data-corner="bottom-right"></div>
+</div>
+
+<script>
+  const box = document.getElementById('box');
+  const header = document.getElementById('header');
+  let isDragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  header.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    offsetX = e.clientX - box.offsetLeft;
+    offsetY = e.clientY - box.offsetTop;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      box.style.left = `${e.clientX - offsetX}px`;
+      box.style.top = `${e.clientY - offsetY}px`;
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    isResizing = false;
+  });
+
+  const resizers = document.querySelectorAll('.resizer');
+  let isResizing = false;
+  let currentCorner = '';
+  let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+  resizers.forEach(resizer => {
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      currentCorner = e.target.dataset.corner;
+      startX = e.clientX;
+      startY = e.clientY;
+      startWidth = parseInt(getComputedStyle(box).width, 10);
+      startHeight = parseInt(getComputedStyle(box).height, 10);
+      startLeft = box.offsetLeft;
+      startTop = box.offsetTop;
+      e.stopPropagation();
+    });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    switch (currentCorner) {
+      case 'bottom-right':
+        box.style.width = `${Math.max(300, startWidth + dx)}px`;
+        box.style.height = `${Math.max(200, startHeight + dy)}px`;
+        break;
+      case 'bottom-left':
+        box.style.width = `${Math.max(300, startWidth - dx)}px`;
+        box.style.left = `${startLeft + dx}px`;
+        box.style.height = `${Math.max(200, startHeight + dy)}px`;
+        break;
+      case 'top-right':
+        box.style.width = `${Math.max(300, startWidth + dx)}px`;
+        box.style.height = `${Math.max(200, startHeight - dy)}px`;
+        box.style.top = `${startTop + dy}px`;
+        break;
+      case 'top-left':
+        box.style.width = `${Math.max(300, startWidth - dx)}px`;
+        box.style.left = `${startLeft + dx}px`;
+        box.style.height = `${Math.max(200, startHeight - dy)}px`;
+        box.style.top = `${startTop + dy}px`;
+        break;
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    isResizing = false;
+  });
+</script>
+
+</body>
+</html>
