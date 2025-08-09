@@ -63,9 +63,9 @@ traffic_dir = {
 
 flas = {
 	"E": ["110", "130", "150", "170", "190", "210", "230", "250", "270", "290", "310", "330", "350", "370", "390", "410", "450"],
-	"E_m": ["S0570", "S0630", "S0690", "S0750", "S0810", "S0890", "S0950", "S1010", "S1070", "S1130", "S1190", "S1250"],
-	"W": ["120", "140", "160", "180", "200", "220", "240", "260", "280", "300", "320", "340", "360", "380", "400", "430"],
-	"W_m": ["S0600", "S0660", "S0720", "S0780", "S0840", "S0920", "S0980", "S1040", "S1100", "S1160", "S1220"],
+	"E_m": ["S0570", "S0630", "S0690", "S0750", "S0810", "S0890", "S0950", "S1010", "S1070", "S1130", "S1190", "S1250", "S1370"],
+	"W": ["120", "140", "160", "180", "200", "220", "240", "260", "280", "300", "320", "340", "360", "380", "400", "430", "470"],
+	"W_m": ["S0600", "S0660", "S0720", "S0780", "S0840", "S0920", "S0980", "S1040", "S1100", "S1160", "S1220", "S1310", "S1430"],
 	"DS": ["270", "310", "320", "350", "360", "390", "400"],
 	"EK": ["280", "310", "320", "350", "360", "390", "400"]
 }
@@ -422,17 +422,18 @@ function resetRules(){
 			//DOSUT
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "DOSUT", out_fix: "", ext_rte: "", chase: false, sep: "20NM"},
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "DOSUT", out_fix: "", ext_rte: "", chase: false, sep: "50NM"},
-			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "DOSUT", out_fix: "", ext_rte: "", chase: false, sep: "MNT-"},
+			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "DOSUT", out_fix: "", ext_rte: "", chase: false, sep: "10"}, //SIM use 10 MINS instead of 10+MNT for not chasing
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "DOSUT", out_fix: "", ext_rte: "", chase: true, sep: "MNT+15"},
 			//EPKAL
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "EPKAL", ext_rte: "", chase: false, sep: "20NM"},
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "EPKAL", ext_rte: "", chase: false, sep: "50NM"},
-			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "EPKAL", ext_rte: "", chase: false, sep: "MNT-"},
+			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "EPKAL", ext_rte: "", chase: false, sep: "10"}, //SIM use 10 MINS instead of 10 MINS+MNT for not chasing
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "EPKAL", ext_rte: "", chase: true, sep: "MNT+15"},
 			//BEKOL
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "BEKOL", ext_rte: "", chase: false, sep: "30NM"},
 			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "BEKOL", ext_rte: "A461", chase: false, sep: "50NM"},
-			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "BEKOL", ext_rte: "W26", chase: false, sep: "50NM"}
+			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "BEKOL", ext_rte: "W26", chase: false, sep: "50NM"},
+			{flow: false, both: true, dep: "", dep_not: "", dest: "", dest_not: "", in_fix: "", out_fix: "BEKOL", ext_rte: "W22", chase: false, sep: "50NM"}
 
 		];
 	}
