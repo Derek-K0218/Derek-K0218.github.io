@@ -307,8 +307,9 @@ function draw() {
     ctx.strokeStyle='#d29922'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]);
     ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#d29922'; ctx.font='bold 11px monospace'; ctx.textAlign='left';
-    ctx.fillText(`CPA: ${cpa.dcpa.toFixed(1)} NM`, (pa.x+pb.x)/2+6, (pa.y+pb.y)/2-6);
+    ctx.fillStyle='#3fb950'; ctx.font='bold 11px monospace'; ctx.textAlign='left';
+    const tsec=Math.max(cpa.tcpa_min*60,0);const mm=Math.floor(tsec/60);const ss=Math.floor(tsec%60);
+    ctx.fillText(`CPA: ${cpa.dcpa.toFixed(1)} NM (in ${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')})`, (pa.x+pb.x)/2+6, (pa.y+pb.y)/2-6);
     [pa,pb].forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,5,0,2*Math.PI); ctx.fill(); });
   }
 
@@ -346,7 +347,7 @@ Scale: ${scale.toFixed(1)} px/NM`;
   const pct=Math.min(cpa.dcpa/5,1)*100;
   const fill=document.getElementById('sep_fill');
   fill.style.width=pct+'%';
-  fill.style.background=cpa.dcpa<3?'#f78166':cpa.dcpa<5?'#d29922':'#3fb950';
+  fill.style.background=cpa.dcpa<5?'#f78166':cpa.dcpa<5.5?'#d29922':'#3fb950';
 }
 
 function resetAll() {
