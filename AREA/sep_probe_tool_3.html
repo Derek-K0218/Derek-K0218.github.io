@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ATC CPA Tool</title>
+<title>Sep Probe Simulator</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; height: 100dvh; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -61,7 +61,7 @@ canvas{display:block;width:100%;height:100%;}
 </style>
 </head>
 <body>
-<h1>SEP PROBE TRAINER</h1>
+<h1>SEP PROBE SIMULATOR</h1>
 <div class="main">
   <div class="canvas-wrap">
     <canvas id="radarcanvas"></canvas>
@@ -71,26 +71,26 @@ Scale: — px/NM</div>
   <div class="controls">
     <div class="ac-panel" id="panelA">
       <div class="ac-header" onclick="togglePanel('A')">
-        <div class="ac-header-left"> Aircraft A — VPCJH</div>
+        <div class="ac-header-left">VPCJH</div>
         <button class="ac-toggle" id="toggleBtnA" onclick="event.stopPropagation();togglePanel('A')">▼ Open</button>
       </div>
       <div class="ac-body" id="bodyA">
         <div class="field"><span class="field-label">Heading</span><div class="field-row"><input type="range" id="hdga" min="0" max="359" value="90" oninput="syncFromSlider('hdga')"><input type="number" id="hdga_n" min="0" max="359" value="90" oninput="syncFromNumber('hdga')"></div><div class="unit">degrees (0 – 359)</div></div>
         <div class="field"><span class="field-label">Ground Speed</span><div class="field-row"><input type="range" id="gsa" min="280" max="550" value="350" oninput="syncFromSlider('gsa')"><input type="number" id="gsa_n" min="280" max="550" value="350" oninput="syncFromNumber('gsa')"></div><div class="unit">knots (280 – 550)</div></div>
-        <div class="field"><span class="field-label">Position X</span><div class="field-row"><input type="range" id="xa" min="-300" max="300" value="-40" oninput="syncFromSlider('xa')"><input type="number" id="xa_n" min="-300" max="300" value="-40" oninput="syncFromNumber('xa')"></div><div class="unit">nautical miles (East +, West −)</div></div>
-        <div class="field"><span class="field-label">Position Y</span><div class="field-row"><input type="range" id="ya" min="-300" max="300" value="0" oninput="syncFromSlider('ya')"><input type="number" id="ya_n" min="-300" max="300" value="0" oninput="syncFromNumber('ya')"></div><div class="unit">nautical miles (North +, South −)</div></div>
+        <div class="field"><span class="field-label">Horizontal Position (X)</span><div class="field-row"><input type="range" id="xa" min="-300" max="300" value="-40" oninput="syncFromSlider('xa')"><input type="number" id="xa_n" min="-300" max="300" value="-40" oninput="syncFromNumber('xa')"></div><div class="unit">nautical miles (East +, West −)</div></div>
+        <div class="field"><span class="field-label">Vertical Position (Y)</span><div class="field-row"><input type="range" id="ya" min="-300" max="300" value="0" oninput="syncFromSlider('ya')"><input type="number" id="ya_n" min="-300" max="300" value="0" oninput="syncFromNumber('ya')"></div><div class="unit">nautical miles (North +, South −)</div></div>
       </div>
     </div>
     <div class="ac-panel" id="panelB">
       <div class="ac-header" onclick="togglePanel('B')">
-        <div class="ac-header-left"> Aircraft B — MLILY</div>
+        <div class="ac-header-left">MLILY</div>
         <button class="ac-toggle" id="toggleBtnB" onclick="event.stopPropagation();togglePanel('B')">▼ Open</button>
       </div>
       <div class="ac-body" id="bodyB">
         <div class="field"><span class="field-label">Heading</span><div class="field-row"><input type="range" id="hdgb" min="0" max="359" value="270" oninput="syncFromSlider('hdgb')"><input type="number" id="hdgb_n" min="0" max="359" value="270" oninput="syncFromNumber('hdgb')"></div><div class="unit">degrees (0 – 359)</div></div>
         <div class="field"><span class="field-label">Ground Speed</span><div class="field-row"><input type="range" id="gsb" min="280" max="550" value="350" oninput="syncFromSlider('gsb')"><input type="number" id="gsb_n" min="280" max="550" value="350" oninput="syncFromNumber('gsb')"></div><div class="unit">knots (280 – 550)</div></div>
-        <div class="field"><span class="field-label">Position X</span><div class="field-row"><input type="range" id="xb" min="-300" max="300" value="40" oninput="syncFromSlider('xb')"><input type="number" id="xb_n" min="-300" max="300" value="40" oninput="syncFromNumber('xb')"></div><div class="unit">nautical miles (East +, West −)</div></div>
-        <div class="field"><span class="field-label">Position Y</span><div class="field-row"><input type="range" id="yb" min="-300" max="300" value="0" oninput="syncFromSlider('yb')"><input type="number" id="yb_n" min="-300" max="300" value="0" oninput="syncFromNumber('yb')"></div><div class="unit">nautical miles (North +, South −)</div></div>
+        <div class="field"><span class="field-label">Horizontal Position (X)</span><div class="field-row"><input type="range" id="xb" min="-300" max="300" value="40" oninput="syncFromSlider('xb')"><input type="number" id="xb_n" min="-300" max="300" value="40" oninput="syncFromNumber('xb')"></div><div class="unit">nautical miles (East +, West −)</div></div>
+        <div class="field"><span class="field-label">Vertical Position (Y)</span><div class="field-row"><input type="range" id="yb" min="-300" max="300" value="0" oninput="syncFromSlider('yb')"><input type="number" id="yb_n" min="-300" max="300" value="0" oninput="syncFromNumber('yb')"></div><div class="unit">nautical miles (North +, South −)</div></div>
       </div>
     </div>
     <div class="grid-panel">
@@ -103,10 +103,10 @@ Scale: — px/NM</div>
       <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#8b949e;margin-top:2px;"><span>1 NM</span><span>100 NM</span></div>
     </div>
     <div class="result-box">
-      <h3>▶ CPA RESULTS</h3>
+      <h3>▶ SEP PROBE RESULTS</h3>
       <div class="metric"><span class="metric-label">Current Separation</span><span class="metric-val val-blue" id="cursep">— NM</span></div>
-      <div class="metric"><span class="metric-label">DCPA (Min Distance)</span><span class="metric-val" id="dcpaval">— NM</span></div>
-      <div class="metric"><span class="metric-label">TCPA (Time to CPA)</span><span class="metric-val val-blue" id="tcpaval">mm:ss</span></div>
+      <div class="metric"><span class="metric-label">Minimum Separation</span><span class="metric-val" id="dcpaval">— NM</span></div>
+      <div class="metric"><span class="metric-label">Time to reach</span><span class="metric-val val-blue" id="tcpaval">mm:ss</span></div>
       <div class="metric"><span class="metric-label">Conflict?</span><span class="metric-val" id="conflictval">—</span></div>
       <div class="sep-bar"><div class="sep-fill" id="sepfill" style="width:100%"></div></div>
       <div class="sep-label"><span>CRITICAL (0 NM)</span><span>SAFE (≥5.5 NM)</span></div>
