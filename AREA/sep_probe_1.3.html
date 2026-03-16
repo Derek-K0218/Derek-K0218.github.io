@@ -249,8 +249,8 @@ const ZOOM_MIN=1,ZOOM_MAX=100;
 let gridSize=10,offsetX=0,offsetY=0,isDragging=false,lastMouseX=0,lastMouseY=0,lastTouchDist=null;
 let currentScenario=null;
 const CALLSIGN_A='VPCJH',CALLSIGN_B='MLILY';
-const FONT='bold 13px monospace';
-const LINE_H=17;
+const FONT='bold 10px monospace';
+const LINE_H=13;
 
 function togglePanel(id){
   const body=document.getElementById('body'+id),btn=document.getElementById('toggleBtn'+id);
@@ -286,17 +286,9 @@ function calcCPA(v){
   return{dcpa:Math.sqrt((axcpa-bxcpa)**2+(aycpa-bycpa)**2),tcpamin:Math.min(tcpah,60)*60,tcpah,cursep,diverging:tcpah<0,axcpa,aycpa,bxcpa,bycpa};
 }
 function autoFit(){
-  const v=getVals(),cpa=calcCPA(v);
-  const wrap=document.getElementById('radarcanvas').parentElement;
-  const W=wrap.clientWidth||300,H=wrap.clientHeight||300;
-  const pts=[[v.xa,v.ya],[v.xb,v.yb]];
-  if(!cpa.diverging&&cpa.tcpah>0)pts.push([cpa.axcpa,cpa.aycpa],[cpa.bxcpa,cpa.bycpa]);
-  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
-  const spanX=Math.max(Math.max(...xs)-Math.min(...xs),20);
-  const spanY=Math.max(Math.max(...ys)-Math.min(...ys),20);
-  const scale=Math.min(W/(spanX*1.9),H/(spanY*1.9));
-  setGridSize(Math.min(W,H)/8/scale);
-  offsetX=0;offsetY=0;
+  // Always center at ALDOM (0,0) showing whole FIR
+  setGridSize(50);
+  offsetX=7;offsetY=20;
 }
 function rndInt(mn,mx){return Math.round(mn+Math.random()*(mx-mn));}
 function generateScenario(){
@@ -318,7 +310,7 @@ function resetAll(){setVal('hdga',90);setVal('gsa',350);setVal('xa',-40);setVal(
 
 function drawAircraftIcon(ctx,px,py,headingDeg,color){
   ctx.save();ctx.translate(px,py);ctx.rotate(headingDeg*Math.PI/180);
-  const s=7;ctx.fillStyle=color;
+  const s=6;ctx.fillStyle=color;
   ctx.beginPath();ctx.moveTo(0,-s*1.7);ctx.bezierCurveTo(s*0.22,-s*1.5,s*0.25,s*0.6,s*0.18,s*1.8);ctx.lineTo(0,s*1.55);ctx.lineTo(-s*0.18,s*1.8);ctx.bezierCurveTo(-s*0.25,s*0.6,-s*0.22,-s*1.5,0,-s*1.7);ctx.closePath();ctx.fill();
   ctx.beginPath();ctx.moveTo(-s*0.22,-s*0.15);ctx.lineTo(-s*1.8,s*0.25);ctx.lineTo(-s*1.6,s*0.62);ctx.lineTo(-s*0.22,s*0.55);ctx.closePath();ctx.fill();
   ctx.beginPath();ctx.moveTo(s*0.22,-s*0.15);ctx.lineTo(s*1.8,s*0.25);ctx.lineTo(s*1.6,s*0.62);ctx.lineTo(s*0.22,s*0.55);ctx.closePath();ctx.fill();
@@ -902,7 +894,9 @@ canvasEl.addEventListener('touchend',e=>{
 });
 window.addEventListener('resize',draw);
 canvasEl.addEventListener('click',e=>{if(!isDragging_click)canvasClickPlace(e);});
-requestAnimationFrame(()=>loadRandomScenario());
+requestAnimationFrame(()=>{
+  loadRandomScenario();
+});
 </script>
 </body>
 </html>
