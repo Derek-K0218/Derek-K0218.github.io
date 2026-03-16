@@ -121,6 +121,7 @@ Scale: — px/NM</div>
           </div>
           <div style="font-size:0.68rem;color:#8b949e;margin-bottom:5px;letter-spacing:0.5px;">WAYPOINTS (snap zone ≤ 20 px)</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow-y:auto;padding-right:2px;" id="waypointList">
+            <button onclick="placeAtWaypoint('ABBEY')" class="wp-btn">▲ ABBEY</button>
             <button onclick="placeAtWaypoint('ALDOM')" class="wp-btn">▲ ALDOM</button>
             <button onclick="placeAtWaypoint('ALLEY')" class="wp-btn">▲ ALLEY</button>
             <button onclick="placeAtWaypoint('ASOBA')" class="wp-btn">▲ ASOBA</button>
@@ -134,6 +135,7 @@ Scale: — px/NM</div>
             <button onclick="placeAtWaypoint('COTON')" class="wp-btn">▲ COTON</button>
             <button onclick="placeAtWaypoint('CYBER')" class="wp-btn">▲ CYBER</button>
             <button onclick="placeAtWaypoint('DAGBU')" class="wp-btn">▲ DAGBU</button>
+            <button onclick="placeAtWaypoint('DAKTO')" class="wp-btn">▲ DAKTO</button>
             <button onclick="placeAtWaypoint('DASON')" class="wp-btn">▲ DASON</button>
             <button onclick="placeAtWaypoint('DOSUT')" class="wp-btn">▲ DOSUT</button>
             <button onclick="placeAtWaypoint('DOTMI')" class="wp-btn">▲ DOTMI</button>
@@ -141,9 +143,11 @@ Scale: — px/NM</div>
             <button onclick="placeAtWaypoint('DUMOL')" class="wp-btn">▲ DUMOL</button>
             <button onclick="placeAtWaypoint('ELATO')" class="wp-btn">▲ ELATO</button>
             <button onclick="placeAtWaypoint('ENBOK')" class="wp-btn">▲ ENBOK</button>
+            <button onclick="placeAtWaypoint('ENPET')" class="wp-btn">▲ ENPET</button>
             <button onclick="placeAtWaypoint('ENVAR')" class="wp-btn">▲ ENVAR</button>
             <button onclick="placeAtWaypoint('EPDOS')" class="wp-btn">▲ EPDOS</button>
             <button onclick="placeAtWaypoint('EPKAL')" class="wp-btn">▲ EPKAL</button>
+            <button onclick="placeAtWaypoint('FISHA')" class="wp-btn">▲ FISHA</button>
             <button onclick="placeAtWaypoint('GAMBA')" class="wp-btn">▲ GAMBA</button>
             <button onclick="placeAtWaypoint('GOBBI')" class="wp-btn">▲ GOBBI</button>
             <button onclick="placeAtWaypoint('HOCKY')" class="wp-btn">▲ HOCKY</button>
@@ -162,6 +166,7 @@ Scale: — px/NM</div>
             <button onclick="placeAtWaypoint('MYWAY')" class="wp-btn">▲ MYWAY</button>
             <button onclick="placeAtWaypoint('NOBAD')" class="wp-btn">▲ NOBAD</button>
             <button onclick="placeAtWaypoint('NOMAN')" class="wp-btn">▲ NOMAN</button>
+            <button onclick="placeAtWaypoint('OSUMO')" class="wp-btn">▲ OSUMO</button>
             <button onclick="placeAtWaypoint('PECAN')" class="wp-btn">▲ PECAN</button>
             <button onclick="placeAtWaypoint('PONTI')" class="wp-btn">▲ PONTI</button>
             <button onclick="placeAtWaypoint('RAGSO')" class="wp-btn">▲ RAGSO</button>
@@ -171,8 +176,37 @@ Scale: — px/NM</div>
             <button onclick="placeAtWaypoint('SAPAX')" class="wp-btn">▲ SAPAX</button>
             <button onclick="placeAtWaypoint('SIERA')" class="wp-btn">▲ SIERA</button>
             <button onclick="placeAtWaypoint('SIKOU')" class="wp-btn">▲ SIKOU</button>
+            <button onclick="placeAtWaypoint('SMT')" class="wp-btn">▲ SMT</button>
+            <button onclick="placeAtWaypoint('SONNY')" class="wp-btn">▲ SONNY</button>
             <button onclick="placeAtWaypoint('SUKER')" class="wp-btn">▲ SUKER</button>
             <button onclick="placeAtWaypoint('SULUX')" class="wp-btn">▲ SULUX</button>
+                        <button onclick="placeAtWaypoint('BIMIX')" class="wp-btn">▲ BIMIX</button>
+            <button onclick="placeAtWaypoint('CONGA')" class="wp-btn">▲ CONGA</button>
+            <button onclick="placeAtWaypoint('DALOL')" class="wp-btn">▲ DALOL</button>
+            <button onclick="placeAtWaypoint('ENROM')" class="wp-btn">▲ ENROM</button>
+            <button onclick="placeAtWaypoint('LEGOD')" class="wp-btn">▲ LEGOD</button>
+            <button onclick="placeAtWaypoint('NEDLE')" class="wp-btn">▲ NEDLE</button>
+            <button onclick="placeAtWaypoint('BESDA')" class="wp-btn">▲ BESDA</button>
+            <button onclick="placeAtWaypoint('BUMDI')" class="wp-btn">▲ BUMDI</button>
+            <button onclick="placeAtWaypoint('DUMEP')" class="wp-btn">▲ DUMEP</button>
+            <button onclick="placeAtWaypoint('LARIT')" class="wp-btn">▲ LARIT</button>
+            <button onclick="placeAtWaypoint('LEKEN')" class="wp-btn">▲ LEKEN</button>
+            <button onclick="placeAtWaypoint('LIMSU')" class="wp-btn">▲ LIMSU</button>
+            <button onclick="placeAtWaypoint('MEBKI')" class="wp-btn">▲ MEBKI</button>
+            <button onclick="placeAtWaypoint('NUDPI')" class="wp-btn">▲ NUDPI</button>
+            <button onclick="placeAtWaypoint('SOUSA')" class="wp-btn">▲ SOUSA</button>
+            <button onclick="placeAtWaypoint('MAGOG')" class="wp-btn">▲ MAGOG</button>
+            <button onclick="placeAtWaypoint('MALKA')" class="wp-btn">▲ MALKA</button>
+            <button onclick="placeAtWaypoint('NOPER')" class="wp-btn">▲ NOPER</button>
+            <button onclick="placeAtWaypoint('POVAM')" class="wp-btn">▲ POVAM</button>
+            <button onclick="placeAtWaypoint('RUSBI')" class="wp-btn">▲ RUSBI</button>
+            <button onclick="placeAtWaypoint('SAMMI')" class="wp-btn">▲ SAMMI</button>
+            <button onclick="placeAtWaypoint('SANKU')" class="wp-btn">▲ SANKU</button>
+            <button onclick="placeAtWaypoint('SKATE')" class="wp-btn">▲ SKATE</button>
+            <button onclick="placeAtWaypoint('TOFEE')" class="wp-btn">▲ TOFEE</button>
+            <button onclick="placeAtWaypoint('TUBBY')" class="wp-btn">▲ TUBBY</button>
+            <button onclick="placeAtWaypoint('UNTUL')" class="wp-btn">▲ UNTUL</button>
+            <button onclick="placeAtWaypoint('XEMEK')" class="wp-btn">▲ XEMEK</button>
             <button onclick="placeAtWaypoint('TAMOT')" class="wp-btn">▲ TAMOT</button>
             <button onclick="placeAtWaypoint('SURFA')" class="wp-btn">▲ SURFA</button>
             <button onclick="placeAtWaypoint('TAPPO')" class="wp-btn">▲ TAPPO</button>
@@ -379,6 +413,7 @@ function draw(){
   const o=S(0,0);
   ctx.beginPath();ctx.moveTo(o.x,0);ctx.lineTo(o.x,H);ctx.stroke();
   ctx.beginPath();ctx.moveTo(0,o.y);ctx.lineTo(W,o.y);ctx.stroke();
+  drawTMA(ctx, S);
   drawFIR(ctx, S);
   drawAirways(ctx, S);
   drawWaypoints(ctx, S);
@@ -499,9 +534,69 @@ const WAYPOINTS = [
   { name: 'TAMOT', x: -28.63, y: 151.34 },
   { name: 'SURFA', x: -92.42, y: -31.31 },
   { name: 'TAPPO', x: -7.40, y: 89.19 },
+  { name: 'MALKA', x: 148.87, y: 174.07 },
+  { name: 'BUMDI', x:  -3.35, y: 151.50 },
+  { name: 'SMT',   x: -22.12, y: 150.10 },
+  { name: 'OSUMO', x: 65.94, y: 43.07 },
+  { name: 'DAKTO', x: 45.92, y: 63.36 },
+  { name: 'SONNY', x: 38.45, y: 70.91 },
+  { name: 'MAGOG', x: 81.89, y: 147.61 },
+  { name: 'ENPET', x: 74.28, y: 147.40 },
+  { name: 'FISHA', x: 54.33, y: 146.81 },
+  { name: 'ABBEY', x: 31.03, y: 146.03 },
+  { name: 'LEKEN', x: 30.39, y: 122.86 },
+  { name: 'LARIT', x: 50.48, y: 123.53 },
+  { name: 'NUDPI', x: 70.58, y: 124.16 },
+  { name: 'SOUSA', x: 102.55, y: 131.02 },
+  { name: 'BESDA', x: 135.75, y: 131.90 },
+  { name: 'LIMSU', x: 159.15, y: 174.30 },
+  { name: 'MEBKI', x: 68.16, y: 114.39 },
+  { name: 'DUMEP', x: 47.40, y: 114.45 },
+  { name: 'TOFEE', x: 51.93, y: -31.79 },
+  { name: 'POVAM', x: 55.20, y: 84.76 },
+  { name: 'RUSBI', x: 74.34, y: 56.80 },
+  { name: 'NOPER', x: 97.45, y: 60.65 },
+  { name: 'UNTUL', x: 93.31, y: 28.88 },
+  { name: 'LEGOD', x: 29.44, y: 66.37 },
+  { name: 'SKATE', x: 43.48, y: 101.76 },
+  { name: 'CONGA', x: 136.08, y: 113.89 },
+  { name: 'ENROM', x: 103.06, y: 103.39 },
+  { name: 'SANKU', x: 111.22, y: 101.20 },
+  { name: 'BIMIX', x: 110.49, y: 131.24 },
+  { name: 'DALOL', x: 26.64, y: 114.46 },
+  { name: 'XEMEK', x: 35.07, y: 108.11 },
+  { name: 'TUBBY', x: 129.78, y: 160.27 },
+  { name: 'SAMMI', x: 89.61, y: 157.84 },
+  { name: 'NEDLE', x: 18.36, y: 153.08 },
 ];
 
 
+
+
+// ── TMA SOUTHERN BOUNDARY ────────────────────────────────────────────────────
+const TMA_SOUTH = [
+  [ 81.42,  -54.16],  // 185600N 1154900E
+  [-105.77, -50.16],  // 190000N 1122500E
+  [-162.21, -20.16],  // 193000N 1113000E
+];
+
+function drawTMA(ctx, S) {
+  if (TMA_SOUTH.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = '#6e7681';
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  const p0 = S(TMA_SOUTH[0][0], TMA_SOUTH[0][1]);
+  ctx.moveTo(p0.x, p0.y);
+  for (let i = 1; i < TMA_SOUTH.length; i++) {
+    const p = S(TMA_SOUTH[i][0], TMA_SOUTH[i][1]);
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
 
 // ── FIR BOUNDARY ─────────────────────────────────────────────────────────────
 const FIR_BOUNDARY = [
@@ -533,7 +628,7 @@ function drawFIR(ctx, S) {
   ctx.strokeStyle = '#6e7681';
   ctx.lineWidth = 1;
   ctx.globalAlpha = 0.4;
-  ctx.setLineDash([6, 4]);
+  ctx.setLineDash([]);
   ctx.beginPath();
   const p0 = S(FIR_BOUNDARY[0][0], FIR_BOUNDARY[0][1]);
   ctx.moveTo(p0.x, p0.y);
@@ -558,12 +653,25 @@ const AIRWAYS = [
   { color: '#00e5ff', waypoints: ['ISBAN','ROBIN','CHALI'] },
   { color: '#00e5ff', waypoints: ['DULOP','CARSO','SUKER','HOCKY','CYBER','BETTY'] },
   { color: '#00e5ff', waypoints: ['ASOBA','DULOP'] },
+  { color: '#00e5ff', waypoints: ['SABNO','TOFEE','SUKER','ALDOM'] },
+  { color: '#00e5ff', waypoints: ['NOMAN','UNTUL','OSUMO','DAKTO','SONNY','BETTY'] },
+  { color: '#00e5ff', waypoints: ['ELATO','MAGOG','ENPET','FISHA','ABBEY'] },
+  { color: '#00e5ff', waypoints: ['LELIM','MALKA','MAGOG'] },
+  { color: '#00e5ff', waypoints: ['DOTMI','MAGOG'] },
+  { color: '#00e5ff', waypoints: ['ELATO','TUBBY','SAMMI','NEDLE','PONTI','BUMDI','SMT'] },
   // Yellow lines
   { color: '#ffea00', waypoints: ['PECAN','LAXET','EPDOS','ENBOK','EPKAL'] },
   { color: '#ffea00', waypoints: ['LAXET','SURFA','IDOSI','IKELA'] },
   { color: '#ffea00', waypoints: ['ALLEY','EPDOS'] },
   { color: '#ffea00', waypoints: ['ALLEY','SURFA'] },
   { color: '#ffea00', waypoints: ['PECAN','ALLEY','DAGBU','SIKOU'] },
+  { color: '#ffea00', waypoints: ['DALOL','XEMEK','SKATE','POVAM','RUSBI','UNTUL','SABNO'] },
+  { color: '#ffea00', waypoints: ['SKATE','NOPER','NOMAN'] },
+  { color: '#ffea00', waypoints: ['SKATE','KAPLI'] },
+  { color: '#ffea00', waypoints: ['DALOL','DUMEP','MEBKI','CONGA','ENVAR'] },
+  { color: '#ffea00', waypoints: ['CONGA','ELATO'] },
+  { color: '#ffea00', waypoints: ['LEKEN','LARIT','NUDPI','SOUSA','BESDA','LIMSU','LELIM'] },
+  { color: '#ffea00', waypoints: ['SOUSA','DOTMI'] },
 ];
 
 function drawAirways(ctx, S) {
