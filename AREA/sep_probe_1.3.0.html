@@ -1,9 +1,8 @@
 <!DO
-const routeVisibility = { TRE: true, TRS: true, TRW: true, OVF: true, OVF_OTHER: false, EX_RTE: true };
+const routeVisibility = { TRE: true, TRS: true, TRW: true, OVF: true };
 function toggleRoute(group) {
   routeVisibility[group] = !routeVisibility[group];
   const btn = document.getElementById('btn-route-'+group);
-  btn.classList.toggle('place-active', routeVisibility[group]);
   btn.classList.toggle('route-btn-off', !routeVisibility[group]);
   draw();
 }
@@ -23,12 +22,7 @@ h1 { text-align: center; padding: 14px 18px; font-size: 1.3rem; letter-spacing: 
 .controls { order: 2; flex: 1; min-height: 0; background: #161b22; border-top: 1px solid #21262d; overflow-y: auto; padding: 12px; padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 768px) {
   .main { flex-direction: row; }
-  .controls { order: 0; width: 480px; flex: none; border-top: none; border-right: 1px solid #21262d; padding: 16px; overflow-y: auto; }
-  .canvas-wrap { order: 0; flex: 1; height: auto; }
-}
-@media (max-height: 500px) and (orientation: landscape) {
-  .main { flex-direction: row; }
-  .controls { order: 0; width: 300px; flex: none; border-top: none; border-right: 1px solid #21262d; padding: 10px; overflow-y: auto; max-height: 100dvh; }
+  .controls { order: 0; width: 360px; flex: none; border-top: none; border-right: 1px solid #21262d; padding: 16px; overflow-y: auto; }
   .canvas-wrap { order: 0; flex: 1; height: auto; }
 }
 .ac-panel { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
@@ -79,7 +73,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
 <meta name="apple-mobile-web-app-title" content="Sep Probe Sim">
 
 <style>
-.route-btn-off { background: #21262d !important; border-color: #30363d !important; color: #6e7681 !important; text-decoration: line-through; }
+.route-btn-off { opacity: 0.3 !important; text-decoration: line-through; }
 </style>
 </head>
 <body>
@@ -87,6 +81,8 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
 <div class="main">
   <div class="canvas-wrap">
     <canvas id="radarcanvas"></canvas>
+    <div class="info-bar" id="infobar">Grid: 10 NM
+Scale: — px/NM</div>
   </div>
   <div class="controls">
     <div class="ac-panel" id="panelA">
@@ -95,7 +91,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
         <button class="ac-toggle" id="toggleBtnA" onclick="event.stopPropagation();togglePanel('A')">▼ Open</button>
       </div>
       <div class="ac-body" id="bodyA">
-        <div class="field"><span class="field-label">Heading</span><div class="field-row"><input type="range" id="hdga" min="0" max="359" value="90" oninput="syncFromSlider('hdga')" style="display:none"><canvas id="compass_a" width="72" height="72" style="cursor:crosshair;border-radius:50%;" onmousedown="compassDown(event,'a')"></canvas><input type="number" id="hdga_n" min="0" max="359" value="90" oninput="syncFromNumber('hdga')"></div><div class="unit">degrees (0 – 359)</div></div>
+        <div class="field"><span class="field-label">Heading</span><div class="field-row"><input type="range" id="hdga" min="0" max="359" value="90" oninput="syncFromSlider('hdga')"><input type="number" id="hdga_n" min="0" max="359" value="90" oninput="syncFromNumber('hdga')"></div><div class="unit">degrees (0 – 359)</div></div>
         <div class="field"><span class="field-label">Ground Speed</span><div class="field-row"><input type="range" id="gsa" min="280" max="550" value="350" oninput="syncFromSlider('gsa')"><input type="number" id="gsa_n" min="280" max="550" value="350" oninput="syncFromNumber('gsa')"></div><div class="unit">knots (280 – 550)</div></div>
         <div class="field"><span class="field-label">Horizontal Position (X)</span><div class="field-row"><input type="range" id="xa" min="-300" max="300" value="-40" oninput="syncFromSlider('xa')"><input type="number" id="xa_n" min="-300" max="300" value="-40" oninput="syncFromNumber('xa')"></div><div class="unit">nautical miles (East +, West −)</div></div>
         <div class="field"><span class="field-label">Vertical Position (Y)</span><div class="field-row"><input type="range" id="ya" min="-300" max="300" value="0" oninput="syncFromSlider('ya')"><input type="number" id="ya_n" min="-300" max="300" value="0" oninput="syncFromNumber('ya')"></div><div class="unit">nautical miles (North +, South −)</div></div>
@@ -107,7 +103,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
         <button class="ac-toggle" id="toggleBtnB" onclick="event.stopPropagation();togglePanel('B')">▼ Open</button>
       </div>
       <div class="ac-body" id="bodyB">
-        <div class="field"><span class="field-label">Heading</span><div class="field-row"><input type="range" id="hdgb" min="0" max="359" value="270" oninput="syncFromSlider('hdgb')" style="display:none"><canvas id="compass_b" width="72" height="72" style="cursor:crosshair;border-radius:50%;" onmousedown="compassDown(event,'b')"></canvas><input type="number" id="hdgb_n" min="0" max="359" value="270" oninput="syncFromNumber('hdgb')"></div><div class="unit">degrees (0 – 359)</div></div>
+        <div class="field"><span class="field-label">Heading</span><div class="field-row"><input type="range" id="hdgb" min="0" max="359" value="270" oninput="syncFromSlider('hdgb')"><input type="number" id="hdgb_n" min="0" max="359" value="270" oninput="syncFromNumber('hdgb')"></div><div class="unit">degrees (0 – 359)</div></div>
         <div class="field"><span class="field-label">Ground Speed</span><div class="field-row"><input type="range" id="gsb" min="280" max="550" value="350" oninput="syncFromSlider('gsb')"><input type="number" id="gsb_n" min="280" max="550" value="350" oninput="syncFromNumber('gsb')"></div><div class="unit">knots (280 – 550)</div></div>
         <div class="field"><span class="field-label">Horizontal Position (X)</span><div class="field-row"><input type="range" id="xb" min="-300" max="300" value="40" oninput="syncFromSlider('xb')"><input type="number" id="xb_n" min="-300" max="300" value="40" oninput="syncFromNumber('xb')"></div><div class="unit">nautical miles (East +, West −)</div></div>
         <div class="field"><span class="field-label">Vertical Position (Y)</span><div class="field-row"><input type="range" id="yb" min="-300" max="300" value="0" oninput="syncFromSlider('yb')"><input type="number" id="yb_n" min="-300" max="300" value="0" oninput="syncFromNumber('yb')"></div><div class="unit">nautical miles (North +, South −)</div></div>
@@ -133,21 +129,14 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
             <button id="hdgBtnB" onclick="setHeadingMode('B')" style="flex:1;padding:9px 6px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#f78166;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.15s;">🧭 Aim MLILY</button>
           </div>
           <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-            <button id="wpNamesBtn" onclick="toggleWpNames()" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="place-active">WP Name</button>
+            <button id="wpNamesBtn" onclick="toggleWpNames()" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#6e7681;font-size:0.74rem;cursor:pointer;transition:all 0.15s;">🏷 Names: ON</button>
           </div>
-          <div style="font-size:0.74rem;color:#8b949e;margin-bottom:5px;letter-spacing:0.5px;">WAYPOINTS (snap zone ≤ 20 px)</div>
+          <div style="font-size:0.68rem;color:#8b949e;margin-bottom:5px;letter-spacing:0.5px;">WAYPOINTS (snap zone ≤ 20 px)</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow-y:auto;padding-right:2px;" id="waypointList">
             <button onclick="placeAtWaypoint('ABBEY')" class="wp-btn">▲ ABBEY</button>
-            <button onclick="placeAtWaypoint('AKOTA')" class="wp-btn">▲ AKOTA</button>
-            <button onclick="placeAtWaypoint('ALDIS')" class="wp-btn">▲ ALDIS</button>
             <button onclick="placeAtWaypoint('ALDOM')" class="wp-btn">▲ ALDOM</button>
             <button onclick="placeAtWaypoint('ALLEY')" class="wp-btn">▲ ALLEY</button>
-            <button onclick="placeAtWaypoint('ANPOG')" class="wp-btn">▲ ANPOG</button>
-            <button onclick="placeAtWaypoint('APAKA')" class="wp-btn">▲ APAKA</button>
             <button onclick="placeAtWaypoint('ASOBA')" class="wp-btn">▲ ASOBA</button>
-            <button onclick="placeAtWaypoint('ATBUD')" class="wp-btn">▲ ATBUD</button>
-            <button onclick="placeAtWaypoint('AVMUP')" class="wp-btn">▲ AVMUP</button>
-            <button onclick="placeAtWaypoint('BEBEM')" class="wp-btn">▲ BEBEM</button>
             <button onclick="placeAtWaypoint('BEKOL')" class="wp-btn">▲ BEKOL</button>
             <button onclick="placeAtWaypoint('BESDA')" class="wp-btn">▲ BESDA</button>
             <button onclick="placeAtWaypoint('BETTY')" class="wp-btn">▲ BETTY</button>
@@ -158,25 +147,18 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
             <button onclick="placeAtWaypoint('CARSO')" class="wp-btn">▲ CARSO</button>
             <button onclick="placeAtWaypoint('CHALI')" class="wp-btn">▲ CHALI</button>
             <button onclick="placeAtWaypoint('COMBI')" class="wp-btn">▲ COMBI</button>
-            <button onclick="placeAtWaypoint('COMBO')" class="wp-btn">▲ COMBO</button>
             <button onclick="placeAtWaypoint('CONGA')" class="wp-btn">▲ CONGA</button>
             <button onclick="placeAtWaypoint('COTON')" class="wp-btn">▲ COTON</button>
             <button onclick="placeAtWaypoint('CYBER')" class="wp-btn">▲ CYBER</button>
-            <button onclick="placeAtWaypoint('CYRUS')" class="wp-btn">▲ CYRUS</button>
-            <button onclick="placeAtWaypoint('DABGI')" class="wp-btn">▲ DABGI</button>
-            <button onclick="placeAtWaypoint('DADON')" class="wp-btn">▲ DADON</button>
             <button onclick="placeAtWaypoint('DAGBU')" class="wp-btn">▲ DAGBU</button>
             <button onclick="placeAtWaypoint('DAKTO')" class="wp-btn">▲ DAKTO</button>
             <button onclick="placeAtWaypoint('DALOL')" class="wp-btn">▲ DALOL</button>
-            <button onclick="placeAtWaypoint('DALRA')" class="wp-btn">▲ DALRA</button>
             <button onclick="placeAtWaypoint('DASON')" class="wp-btn">▲ DASON</button>
-            <button onclick="placeAtWaypoint('DONDA')" class="wp-btn">▲ DONDA</button>
             <button onclick="placeAtWaypoint('DOSUT')" class="wp-btn">▲ DOSUT</button>
             <button onclick="placeAtWaypoint('DOTMI')" class="wp-btn">▲ DOTMI</button>
             <button onclick="placeAtWaypoint('DULOP')" class="wp-btn">▲ DULOP</button>
             <button onclick="placeAtWaypoint('DUMEP')" class="wp-btn">▲ DUMEP</button>
             <button onclick="placeAtWaypoint('DUMOL')" class="wp-btn">▲ DUMOL</button>
-            <button onclick="placeAtWaypoint('EGEMU')" class="wp-btn">▲ EGEMU</button>
             <button onclick="placeAtWaypoint('ELATO')" class="wp-btn">▲ ELATO</button>
             <button onclick="placeAtWaypoint('ENBOK')" class="wp-btn">▲ ENBOK</button>
             <button onclick="placeAtWaypoint('ENPET')" class="wp-btn">▲ ENPET</button>
@@ -184,95 +166,69 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
             <button onclick="placeAtWaypoint('ENVAR')" class="wp-btn">▲ ENVAR</button>
             <button onclick="placeAtWaypoint('EPDOS')" class="wp-btn">▲ EPDOS</button>
             <button onclick="placeAtWaypoint('EPKAL')" class="wp-btn">▲ EPKAL</button>
-            <button onclick="placeAtWaypoint('EXOTO')" class="wp-btn">▲ EXOTO</button>
-            <button onclick="placeAtWaypoint('EXTRA')" class="wp-btn">▲ EXTRA</button>
             <button onclick="placeAtWaypoint('FISHA')" class="wp-btn">▲ FISHA</button>
             <button onclick="placeAtWaypoint('GAMBA')" class="wp-btn">▲ GAMBA</button>
-            <button onclick="placeAtWaypoint('GIVIV')" class="wp-btn">▲ GIVIV</button>
             <button onclick="placeAtWaypoint('GOBBI')" class="wp-btn">▲ GOBBI</button>
             <button onclick="placeAtWaypoint('HOCKY')" class="wp-btn">▲ HOCKY</button>
             <button onclick="placeAtWaypoint('IDOSI')" class="wp-btn">▲ IDOSI</button>
-            <button onclick="placeAtWaypoint('IDUMA')" class="wp-btn">▲ IDUMA</button>
             <button onclick="placeAtWaypoint('IGLEG')" class="wp-btn">▲ IGLEG</button>
             <button onclick="placeAtWaypoint('IKELA')" class="wp-btn">▲ IKELA</button>
             <button onclick="placeAtWaypoint('ISBAN')" class="wp-btn">▲ ISBAN</button>
-            <button onclick="placeAtWaypoint('ISBIG')" class="wp-btn">▲ ISBIG</button>
-            <button onclick="placeAtWaypoint('ISLOM')" class="wp-btn">▲ ISLOM</button>
-            <button onclick="placeAtWaypoint('KADLO')" class="wp-btn">▲ KADLO</button>
             <button onclick="placeAtWaypoint('KAPLI')" class="wp-btn">▲ KAPLI</button>
             <button onclick="placeAtWaypoint('LANDA')" class="wp-btn">▲ LANDA</button>
-            <button onclick="placeAtWaypoint('LAPUG')" class="wp-btn">▲ LAPUG</button>
             <button onclick="placeAtWaypoint('LARIT')" class="wp-btn">▲ LARIT</button>
             <button onclick="placeAtWaypoint('LAXET')" class="wp-btn">▲ LAXET</button>
             <button onclick="placeAtWaypoint('LEGOD')" class="wp-btn">▲ LEGOD</button>
             <button onclick="placeAtWaypoint('LEKEN')" class="wp-btn">▲ LEKEN</button>
             <button onclick="placeAtWaypoint('LELIM')" class="wp-btn">▲ LELIM</button>
-            <button onclick="placeAtWaypoint('LENKO')" class="wp-btn">▲ LENKO</button>
-            <button onclick="placeAtWaypoint('LH')" class="wp-btn">▲ LH</button>
             <button onclick="placeAtWaypoint('LIMSU')" class="wp-btn">▲ LIMSU</button>
             <button onclick="placeAtWaypoint('MADRU')" class="wp-btn">▲ MADRU</button>
             <button onclick="placeAtWaypoint('MAGOG')" class="wp-btn">▲ MAGOG</button>
             <button onclick="placeAtWaypoint('MALKA')" class="wp-btn">▲ MALKA</button>
             <button onclick="placeAtWaypoint('MAPLE')" class="wp-btn">▲ MAPLE</button>
             <button onclick="placeAtWaypoint('MEBKI')" class="wp-btn">▲ MEBKI</button>
-            <button onclick="placeAtWaypoint('MIGUG')" class="wp-btn">▲ MIGUG</button>
-            <button onclick="placeAtWaypoint('MIKIN')" class="wp-btn">▲ MIKIN</button>
             <button onclick="placeAtWaypoint('MORTU')" class="wp-btn">▲ MORTU</button>
             <button onclick="placeAtWaypoint('MULET')" class="wp-btn">▲ MULET</button>
-            <button onclick="placeAtWaypoint('MUMOT')" class="wp-btn">▲ MUMOT</button>
             <button onclick="placeAtWaypoint('MYWAY')" class="wp-btn">▲ MYWAY</button>
             <button onclick="placeAtWaypoint('NEDLE')" class="wp-btn">▲ NEDLE</button>
-            <button onclick="placeAtWaypoint('NLG')" class="wp-btn">▲ NLG</button>
             <button onclick="placeAtWaypoint('NOBAD')" class="wp-btn">▲ NOBAD</button>
             <button onclick="placeAtWaypoint('NOMAN')" class="wp-btn">▲ NOMAN</button>
             <button onclick="placeAtWaypoint('NOPER')" class="wp-btn">▲ NOPER</button>
             <button onclick="placeAtWaypoint('NUDPI')" class="wp-btn">▲ NUDPI</button>
-            <button onclick="placeAtWaypoint('NUSLA')" class="wp-btn">▲ NUSLA</button>
             <button onclick="placeAtWaypoint('OSUMO')" class="wp-btn">▲ OSUMO</button>
             <button onclick="placeAtWaypoint('PECAN')" class="wp-btn">▲ PECAN</button>
             <button onclick="placeAtWaypoint('PONTI')" class="wp-btn">▲ PONTI</button>
-            <button onclick="placeAtWaypoint('POU')" class="wp-btn">▲ POU</button>
             <button onclick="placeAtWaypoint('POVAM')" class="wp-btn">▲ POVAM</button>
             <button onclick="placeAtWaypoint('RAGSO')" class="wp-btn">▲ RAGSO</button>
-            <button onclick="placeAtWaypoint('RECON')" class="wp-btn">▲ RECON</button>
-            <button onclick="placeAtWaypoint('RENOT')" class="wp-btn">▲ RENOT</button>
             <button onclick="placeAtWaypoint('ROBIN')" class="wp-btn">▲ ROBIN</button>
             <button onclick="placeAtWaypoint('ROCCA')" class="wp-btn">▲ ROCCA</button>
             <button onclick="placeAtWaypoint('RUSBI')" class="wp-btn">▲ RUSBI</button>
             <button onclick="placeAtWaypoint('SABNO')" class="wp-btn">▲ SABNO</button>
-            <button onclick="placeAtWaypoint('SAMAS')" class="wp-btn">▲ SAMAS</button>
             <button onclick="placeAtWaypoint('SAMMI')" class="wp-btn">▲ SAMMI</button>
             <button onclick="placeAtWaypoint('SANKU')" class="wp-btn">▲ SANKU</button>
             <button onclick="placeAtWaypoint('SAPAX')" class="wp-btn">▲ SAPAX</button>
-            <button onclick="placeAtWaypoint('SHL')" class="wp-btn">▲ SHL</button>
             <button onclick="placeAtWaypoint('SIERA')" class="wp-btn">▲ SIERA</button>
             <button onclick="placeAtWaypoint('SIKOU')" class="wp-btn">▲ SIKOU</button>
             <button onclick="placeAtWaypoint('SKATE')" class="wp-btn">▲ SKATE</button>
+            <button onclick="placeAtWaypoint('SMT')" class="wp-btn">▲ SMT</button>
             <button onclick="placeAtWaypoint('SONNY')" class="wp-btn">▲ SONNY</button>
             <button onclick="placeAtWaypoint('SOUSA')" class="wp-btn">▲ SOUSA</button>
             <button onclick="placeAtWaypoint('SUKER')" class="wp-btn">▲ SUKER</button>
             <button onclick="placeAtWaypoint('SULUX')" class="wp-btn">▲ SULUX</button>
             <button onclick="placeAtWaypoint('SURFA')" class="wp-btn">▲ SURFA</button>
-            <button onclick="placeAtWaypoint('SWA')" class="wp-btn">▲ SWA</button>
             <button onclick="placeAtWaypoint('TAMOT')" class="wp-btn">▲ TAMOT</button>
             <button onclick="placeAtWaypoint('TAPPO')" class="wp-btn">▲ TAPPO</button>
             <button onclick="placeAtWaypoint('TOFEE')" class="wp-btn">▲ TOFEE</button>
-            <button onclick="placeAtWaypoint('TOLAK')" class="wp-btn">▲ TOLAK</button>
             <button onclick="placeAtWaypoint('TUBBY')" class="wp-btn">▲ TUBBY</button>
             <button onclick="placeAtWaypoint('UNTUL')" class="wp-btn">▲ UNTUL</button>
-            <button onclick="placeAtWaypoint('UPRIK')" class="wp-btn">▲ UPRIK</button>
             <button onclick="placeAtWaypoint('XEMEK')" class="wp-btn">▲ XEMEK</button>
-            <button onclick="placeAtWaypoint('YIN')" class="wp-btn">▲ YIN</button>
-            <button onclick="placeAtWaypoint('ZUH')" class="wp-btn">▲ ZUH</button>
           </div>
-<div id="route-toggle-btns" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;">
-  <span style="color:#aaa;font-size:12px;font-family:monospace;">ROUTES:</span>
-  <button id="btn-route-TRE" onclick="toggleRoute('TRE')" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="place-active">TRE</button>
-  <button id="btn-route-TRS" onclick="toggleRoute('TRS')" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="place-active">TRS</button>
-  <button id="btn-route-TRW" onclick="toggleRoute('TRW')" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="place-active">TRW</button>
-  <button id="btn-route-OVF" onclick="toggleRoute('OVF')" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="place-active">OVF</button>
-  <button id="btn-route-OVF_OTHER" onclick="toggleRoute('OVF_OTHER')" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="route-btn-off">OVF Other</button>
-  <button id="btn-route-EX_RTE" onclick="toggleRoute('EX_RTE')" style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all 0.15s;" class="place-active">EX RTE</button>
+<div id="route-toggle-btns" style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+  <span style="color:#aaa;font-size:11px;font-family:monospace;">ROUTES:</span>
+  <button id="btn-route-TRE" onclick="toggleRoute('TRE')" style="padding:3px 8px;border-radius:3px;font-size:11px;font-family:monospace;cursor:pointer;">TRE</button>
+  <button id="btn-route-TRS" onclick="toggleRoute('TRS')" style="padding:3px 8px;border-radius:3px;font-size:11px;font-family:monospace;cursor:pointer;">TRS</button>
+  <button id="btn-route-TRW" onclick="toggleRoute('TRW')" style="padding:3px 8px;border-radius:3px;font-size:11px;font-family:monospace;cursor:pointer;">TRW</button>
+  <button id="btn-route-OVF" onclick="toggleRoute('OVF')" style="padding:3px 8px;border-radius:3px;font-size:11px;font-family:monospace;cursor:pointer;">OVF</button>
 </div>
         </div>
       </div>
@@ -327,22 +283,18 @@ function gridToSlider(g){return Math.round(Math.log(g/ZOOM_MIN)/Math.log(ZOOM_MA
 function fmtNM(n){return n>=10?n.toFixed(0)+' NM':n.toFixed(1)+' NM';}
 function syncZoom(sv){gridSize=sliderToGrid(parseFloat(sv));document.getElementById('zoomlabel').textContent=fmtNM(gridSize);draw();}
 function setGridSize(nm){gridSize=clamp(nm,ZOOM_MIN,ZOOM_MAX);document.getElementById('zoomslider').value=gridToSlider(gridSize);document.getElementById('zoomlabel').textContent=fmtNM(gridSize);}
-function syncFromSlider(id){document.getElementById(id+'_n').value=document.getElementById(id).value;if(id==='hdga')drawCompass('a');if(id==='hdgb')drawCompass('b');draw();}
+function syncFromSlider(id){document.getElementById(id+'_n').value=document.getElementById(id).value;draw();}
 function syncFromNumber(id){
   const ni=document.getElementById(id+'_n'),sl=document.getElementById(id);
   let v=parseFloat(ni.value);if(isNaN(v))return;
-  v=clamp(v,parseFloat(sl.min),parseFloat(sl.max));sl.value=v;ni.value=v;
-  if(id==='hdga')drawCompass('a');if(id==='hdgb')drawCompass('b');
-  draw();
+  v=clamp(v,parseFloat(sl.min),parseFloat(sl.max));sl.value=v;ni.value=v;draw();
 }
-
-function setVal(id,v){const sl=document.getElementById(id);v=clamp(v,parseFloat(sl.min),parseFloat(sl.max));sl.value=v;document.getElementById(id+'_n').value=v;if(id==='hdga')drawCompass('a');if(id==='hdgb')drawCompass('b');}
+function setVal(id,v){const sl=document.getElementById(id);v=clamp(v,parseFloat(sl.min),parseFloat(sl.max));sl.value=v;document.getElementById(id+'_n').value=v;}
 function g(id){return parseFloat(document.getElementById(id).value)||0;}
 function getVals(){
   const r=d=>d*Math.PI/180;
-  const trueA=g('hdga')+MAG_VAR, trueB=g('hdgb')+MAG_VAR;
-  return{xa:g('xa'),ya:g('ya'),vxa:g('gsa')*Math.sin(r(trueA)),vya:g('gsa')*Math.cos(r(trueA)),
-         xb:g('xb'),yb:g('yb'),vxb:g('gsb')*Math.sin(r(trueB)),vyb:g('gsb')*Math.cos(r(trueB))};
+  return{xa:g('xa'),ya:g('ya'),vxa:g('gsa')*Math.sin(r(g('hdga'))),vya:g('gsa')*Math.cos(r(g('hdga'))),
+         xb:g('xb'),yb:g('yb'),vxb:g('gsb')*Math.sin(r(g('hdgb'))),vyb:g('gsb')*Math.cos(r(g('hdgb')))};
 }
 function calcCPA(v){
   const dx=v.xa-v.xb,dy=v.ya-v.yb,dvx=v.vxa-v.vxb,dvy=v.vya-v.vyb,dv2=dvx*dvx+dvy*dvy;
@@ -353,9 +305,9 @@ function calcCPA(v){
   return{dcpa:Math.sqrt((axcpa-bxcpa)**2+(aycpa-bycpa)**2),tcpamin:Math.min(tcpah,60)*60,tcpah,cursep,diverging:tcpah<0,axcpa,aycpa,bxcpa,bycpa};
 }
 function autoFit(){
-  // Always center at ALDOM (0,0)
+  // Always center at ALDOM (0,0) showing whole FIR
   setGridSize(50);
-  offsetX=0;offsetY=0;
+  offsetX=7;offsetY=20;
 }
 function rndInt(mn,mx){return Math.round(mn+Math.random()*(mx-mn));}
 function generateScenario(){
@@ -370,7 +322,7 @@ function generateScenario(){
   }
   return{hdga:90,gsa:350,xa:-50,ya:0,hdgb:270,gsb:350,xb:50,yb:0};
 }
-function applyScenario(s){currentScenario=Object.assign({},s);['hdga','gsa','xa','ya','hdgb','gsb','xb','yb'].forEach(id=>setVal(id,s[id]));draw();}
+function applyScenario(s){currentScenario=Object.assign({},s);['hdga','gsa','xa','ya','hdgb','gsb','xb','yb'].forEach(id=>setVal(id,s[id]));autoFit();draw();}
 function loadRandomScenario(){applyScenario(generateScenario());}
 function reloadCurrentScenario(){if(currentScenario){applyScenario(currentScenario);}}
 function resetAll(){setVal('hdga',90);setVal('gsa',350);setVal('xa',-40);setVal('ya',0);setVal('hdgb',270);setVal('gsb',350);setVal('xb',40);setVal('yb',0);autoFit();draw();}
@@ -448,14 +400,26 @@ function draw(){
   const W=canvas.width,H=canvas.height;
   const v=getVals(),cpa=calcCPA(v);
   const scale=Math.min(W,H)/8/gridSize;
-  const midX=0,midY=0; // always centred on ALDOM (0,0)
+  const midX=(v.xa+v.xb)/2,midY=(v.ya+v.yb)/2;
   _lastMidX=midX;_lastMidY=midY;_lastScale=scale;_lastW=W;_lastH=H;
   const cx=W/2,cy=H/2;
   const S=(nx,ny)=>({x:cx+(nx-midX-offsetX)*scale,y:cy-(ny-midY-offsetY)*scale});
 
   ctx.clearRect(0,0,W,H);
 
-  // Grid lines hidden
+  // Grid lines
+  ctx.strokeStyle='#21262d';ctx.lineWidth=0.5;
+  ctx.fillStyle='#2d333b';ctx.font='9px monospace';
+  const x0=Math.floor((midX-W/2/scale)/gridSize)*gridSize;
+  const y0=Math.floor((midY-H/2/scale)/gridSize)*gridSize;
+  for(let gx=x0;gx<midX+W/2/scale+gridSize;gx+=gridSize){
+    const sx=S(gx,0).x;ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();
+    ctx.textAlign='center';ctx.fillText(gx%1===0?gx.toFixed(0):gx.toFixed(1),sx,H-5);
+  }
+  for(let gy=y0;gy<midY+H/2/scale+gridSize;gy+=gridSize){
+    const sy=S(0,gy).y;ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke();
+    ctx.textAlign='left';ctx.fillText(gy%1===0?gy.toFixed(0):gy.toFixed(1),3,sy-3);
+  }
   ctx.strokeStyle='#30363d';ctx.lineWidth=1;
   const o=S(0,0);
   ctx.beginPath();ctx.moveTo(o.x,0);ctx.lineTo(o.x,H);ctx.stroke();
@@ -484,14 +448,15 @@ function draw(){
     if(Math.hypot(pAc.x-midCpaX,pAc.y-midCpaY)>=Math.hypot(pBc.x-midCpaX,pBc.y-midCpaY))cpaLabelA=cpaStr;else cpaLabelB=cpaStr;
   }
 
-  drawAircraftIcon(ctx,pAc.x,pAc.y,g('hdga')+MAG_VAR,'#ffffff');
-  drawAircraftIcon(ctx,pBc.x,pBc.y,g('hdgb')+MAG_VAR,'#ffffff');
+  drawAircraftIcon(ctx,pAc.x,pAc.y,g('hdga'),'#ffffff');
+  drawAircraftIcon(ctx,pBc.x,pBc.y,g('hdgb'),'#ffffff');
 
   const sideA=paC?pickSide(pAc.x,pAc.y,paC.x,paC.y,pBc.x):(pAc.x<=pBc.x?'left':'right');
   const sideB=pbC?pickSide(pBc.x,pBc.y,pbC.x,pbC.y,pAc.x):(pBc.x>=pAc.x?'right':'left');
   drawAcData(ctx,pAc.x,pAc.y,CALLSIGN_A,g('hdga'),g('gsa'),sideA,cpaLabelA);
   drawAcData(ctx,pBc.x,pBc.y,CALLSIGN_B,g('hdgb'),g('gsb'),sideB,cpaLabelB);
 
+  document.getElementById('infobar').textContent=`Grid: ${fmtNM(gridSize)}\nScale: ${scale.toFixed(1)} px/NM`;
   document.getElementById('cursep').textContent=cpa.cursep.toFixed(1)+' NM';
   const dcpaEl=document.getElementById('dcpaval');
   dcpaEl.textContent=cpa.dcpa.toFixed(2)+' NM';
@@ -525,133 +490,95 @@ function applyZoomDelta(factor){setGridSize(gridSize/factor);draw();}
 
 // ── WAYPOINTS ────────────────────────────────────────────────────────────────
 const WAYPOINTS = [
-  { name: 'ABBEY', x: 31.03, y: 146.03 },
-  { name: 'AKOTA', x: 159.88, y: -202.44 },
-  { name: 'ALDIS', x: 298.55, y: -74.29 },
-  { name: 'ALDOM', x: 0.0, y: 0.0 },
+  { name: 'ALDOM', x:   0.00, y:   0.00 },
+  { name: 'IKELA', x: -120.16, y: -70.46 },
+  { name: 'MORTU', x:   0.62, y:  -7.54 },
+  { name: 'NOBAD', x:  64.08, y:  24.57 },
+  { name: 'KAPLI', x: 176.43, y:  79.84 },
   { name: 'ALLEY', x: -33.19, y: 75.03 },
-  { name: 'ANPOG', x: 202.08, y: 166.09 },
-  { name: 'APAKA', x: 229.74, y: 241.67 },
   { name: 'ASOBA', x: 11.08, y: -147.79 },
-  { name: 'ATBUD', x: 13.76, y: -236.13 },
-  { name: 'AVMUP', x: 258.76, y: -110.56 },
-  { name: 'BEBEM', x: 112.12, y: 186.84 },
   { name: 'BEKOL', x: -13.58, y: 162.44 },
-  { name: 'BESDA', x: 135.75, y: 131.9 },
   { name: 'BETTY', x: 10.43, y: 99.02 },
   { name: 'BIGEX', x: -19.41, y: 143.02 },
-  { name: 'BIMIX', x: 110.49, y: 131.24 },
-  { name: 'BUMDI', x: -3.35, y: 151.5 },
   { name: 'CANTO', x: -37.65, y: 108.89 },
   { name: 'CARSO', x: 18.99, y: -50.16 },
   { name: 'CHALI', x: -43.04, y: 87.59 },
   { name: 'COMBI', x: -51.46, y: 99.46 },
-  { name: 'COMBO', x: 212.23, y: 145.56 },
-  { name: 'CONGA', x: 136.08, y: 113.89 },
   { name: 'COTON', x: -67.19, y: 79.25 },
-  { name: 'CYBER', x: 10.1, y: 60.67 },
-  { name: 'CYRUS', x: 234.66, y: 142.79 },
-  { name: 'DABGI', x: 16.87, y: -339.49 },
-  { name: 'DADON', x: 204.81, y: 146.42 },
+  { name: 'CYBER', x: 10.10, y: 60.67 },
   { name: 'DAGBU', x: -125.37, y: 42.81 },
-  { name: 'DAKTO', x: 45.92, y: 63.36 },
-  { name: 'DALOL', x: 26.64, y: 114.46 },
-  { name: 'DALRA', x: 120.11, y: -123.49 },
   { name: 'DASON', x: -84.44, y: 73.23 },
-  { name: 'DONDA', x: -132.76, y: -307.96 },
   { name: 'DOSUT', x: -39.17, y: -168.16 },
   { name: 'DOTMI', x: 101.27, y: 172.94 },
   { name: 'DULOP', x: 9.56, y: -95.96 },
-  { name: 'DUMEP', x: 47.4, y: 114.45 },
-  { name: 'DUMOL', x: 4.1, y: -50.16 },
-  { name: 'EGEMU', x: -118.0, y: -170.16 },
+  { name: 'DUMOL', x: 4.10, y: -50.16 },
   { name: 'ELATO', x: 176.43, y: 149.84 },
-  { name: 'ENBOK', x: -49.8, y: -76.76 },
-  { name: 'ENPET', x: 74.28, y: 147.4 },
-  { name: 'ENROM', x: 103.06, y: 103.39 },
+  { name: 'ENBOK', x: -49.80, y: -76.76 },
   { name: 'ENVAR', x: 176.43, y: 129.34 },
   { name: 'EPDOS', x: -46.22, y: -50.16 },
   { name: 'EPKAL', x: -80.09, y: -118.66 },
-  { name: 'EXOTO', x: -187.61, y: -268.66 },
-  { name: 'EXTRA', x: 216.81, y: 153.86 },
-  { name: 'FISHA', x: 54.33, y: 146.81 },
   { name: 'GAMBA', x: -81.68, y: 88.98 },
-  { name: 'GIVIV', x: -187.31, y: 67.07 },
   { name: 'GOBBI', x: -47.79, y: 77.98 },
   { name: 'HOCKY', x: 11.32, y: 45.67 },
   { name: 'IDOSI', x: -105.77, y: -50.16 },
-  { name: 'IDUMA', x: -23.83, y: 183.62 },
-  { name: 'IGLEG', x: -109.85, y: -55.9 },
-  { name: 'IKELA', x: -120.16, y: -70.46 },
+  { name: 'IGLEG', x: -109.85, y: -55.90 },
   { name: 'ISBAN', x: -4.91, y: 59.42 },
-  { name: 'ISBIG', x: -195.6, y: 48.49 },
-  { name: 'ISLOM', x: -19.96, y: 207.24 },
-  { name: 'KADLO', x: 235.22, y: 187.14 },
-  { name: 'KAPLI', x: 176.43, y: 79.84 },
-  { name: 'LANDA', x: -75.0, y: 106.63 },
-  { name: 'LAPUG', x: 169.69, y: 189.52 },
-  { name: 'LARIT', x: 50.48, y: 123.53 },
+  { name: 'LANDA', x: -75.00, y: 106.63 },
   { name: 'LAXET', x: -21.03, y: 66.12 },
-  { name: 'LEGOD', x: 29.44, y: 66.37 },
-  { name: 'LEKEN', x: 30.39, y: 122.86 },
-  { name: 'LELIM', x: 165.8, y: 186.24 },
-  { name: 'LENKO', x: -229.94, y: -145.21 },
-  { name: 'LH', x: -228.05, y: 77.94 },
-  { name: 'LIMSU', x: 159.15, y: 174.3 },
-  { name: 'MADRU', x: 157.43, y: 79.6 },
-  { name: 'MAGOG', x: 81.89, y: 147.61 },
-  { name: 'MALKA', x: 148.87, y: 174.07 },
+  { name: 'LELIM', x: 165.80, y: 186.24 },
+  { name: 'MADRU', x: 157.43, y: 79.60 },
   { name: 'MAPLE', x: -72.17, y: 92.29 },
-  { name: 'MEBKI', x: 68.16, y: 114.39 },
-  { name: 'MIGUG', x: -21.11, y: -273.76 },
-  { name: 'MIKIN', x: 210.85, y: -30.05 },
-  { name: 'MORTU', x: 0.62, y: -7.54 },
   { name: 'MULET', x: -32.52, y: 104.88 },
-  { name: 'MUMOT', x: 192.79, y: -48.44 },
   { name: 'MYWAY', x: -93.42, y: 21.62 },
-  { name: 'NEDLE', x: 18.36, y: 153.08 },
-  { name: 'NLG', x: -45.85, y: 161.74 },
-  { name: 'NOBAD', x: 64.08, y: 24.57 },
   { name: 'NOMAN', x: 129.68, y: 9.84 },
-  { name: 'NOPER', x: 97.45, y: 60.65 },
-  { name: 'NUDPI', x: 70.58, y: 124.16 },
-  { name: 'NUSLA', x: -48.48, y: 214.54 },
-  { name: 'OSUMO', x: 65.94, y: 43.07 },
   { name: 'PECAN', x: -19.14, y: 96.18 },
   { name: 'PONTI', x: 5.01, y: 152.12 },
-  { name: 'POU', x: -66.82, y: 191.14 },
-  { name: 'POVAM', x: 55.2, y: 84.76 },
   { name: 'RAGSO', x: -134.98, y: 55.38 },
-  { name: 'RECON', x: 227.68, y: 92.69 },
-  { name: 'RENOT', x: 233.56, y: 163.94 },
   { name: 'ROBIN', x: -5.96, y: 72.59 },
   { name: 'ROCCA', x: -44.76, y: 101.77 },
-  { name: 'RUSBI', x: 74.34, y: 56.8 },
   { name: 'SABNO', x: 83.02, y: -51.06 },
-  { name: 'SAMAS', x: -218.93, y: 40.14 },
-  { name: 'SAMMI', x: 89.61, y: 157.84 },
-  { name: 'SANKU', x: 111.22, y: 101.2 },
   { name: 'SAPAX', x: -9.07, y: 109.18 },
-  { name: 'SHL', x: -29.57, y: 195.34 },
   { name: 'SIERA', x: -46.32, y: 129.04 },
   { name: 'SIKOU', x: -162.21, y: 60.44 },
-  { name: 'SKATE', x: 43.48, y: 101.76 },
-  { name: 'SONNY', x: 38.45, y: 70.91 },
-  { name: 'SOUSA', x: 102.55, y: 131.02 },
-  { name: 'SUKER', x: 15.76, y: -9.6 },
+  { name: 'SUKER', x: 15.76, y: -9.60 },
   { name: 'SULUX', x: 58.43, y: 30.75 },
-  { name: 'SURFA', x: -92.42, y: -31.31 },
-  { name: 'SWA', x: 135.04, y: 216.24 },
   { name: 'TAMOT', x: -28.63, y: 151.34 },
-  { name: 'TAPPO', x: -7.4, y: 89.19 },
+  { name: 'SURFA', x: -92.42, y: -31.31 },
+  { name: 'TAPPO', x: -7.40, y: 89.19 },
+  { name: 'MALKA', x: 148.87, y: 174.07 },
+  { name: 'BUMDI', x:  -3.35, y: 151.50 },
+  { name: 'SMT',   x: -22.12, y: 150.10 },
+  { name: 'OSUMO', x: 65.94, y: 43.07 },
+  { name: 'DAKTO', x: 45.92, y: 63.36 },
+  { name: 'SONNY', x: 38.45, y: 70.91 },
+  { name: 'MAGOG', x: 81.89, y: 147.61 },
+  { name: 'ENPET', x: 74.28, y: 147.40 },
+  { name: 'FISHA', x: 54.33, y: 146.81 },
+  { name: 'ABBEY', x: 31.03, y: 146.03 },
+  { name: 'LEKEN', x: 30.39, y: 122.86 },
+  { name: 'LARIT', x: 50.48, y: 123.53 },
+  { name: 'NUDPI', x: 70.58, y: 124.16 },
+  { name: 'SOUSA', x: 102.55, y: 131.02 },
+  { name: 'BESDA', x: 135.75, y: 131.90 },
+  { name: 'LIMSU', x: 159.15, y: 174.30 },
+  { name: 'MEBKI', x: 68.16, y: 114.39 },
+  { name: 'DUMEP', x: 47.40, y: 114.45 },
   { name: 'TOFEE', x: 51.93, y: -31.79 },
-  { name: 'TOLAK', x: 176.43, y: 195.31 },
-  { name: 'TUBBY', x: 129.78, y: 160.27 },
+  { name: 'POVAM', x: 55.20, y: 84.76 },
+  { name: 'RUSBI', x: 74.34, y: 56.80 },
+  { name: 'NOPER', x: 97.45, y: 60.65 },
   { name: 'UNTUL', x: 93.31, y: 28.88 },
-  { name: 'UPRIK', x: -20.48, y: 219.71 },
+  { name: 'LEGOD', x: 29.44, y: 66.37 },
+  { name: 'SKATE', x: 43.48, y: 101.76 },
+  { name: 'CONGA', x: 136.08, y: 113.89 },
+  { name: 'ENROM', x: 103.06, y: 103.39 },
+  { name: 'SANKU', x: 111.22, y: 101.20 },
+  { name: 'BIMIX', x: 110.49, y: 131.24 },
+  { name: 'DALOL', x: 26.64, y: 114.46 },
   { name: 'XEMEK', x: 35.07, y: 108.11 },
-  { name: 'YIN', x: -54.12, y: 261.24 },
-  { name: 'ZUH', x: -51.21, y: 143.14 }
+  { name: 'TUBBY', x: 129.78, y: 160.27 },
+  { name: 'SAMMI', x: 89.61, y: 157.84 },
+  { name: 'NEDLE', x: 18.36, y: 153.08 },
 ];
 
 
@@ -668,8 +595,8 @@ function drawTMA(ctx, S) {
   if (TMA_SOUTH.length < 2) return;
   ctx.save();
   ctx.strokeStyle = '#6e7681';
-  ctx.lineWidth = 1.5;
-  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
   const p0 = S(TMA_SOUTH[0][0], TMA_SOUTH[0][1]);
@@ -710,8 +637,8 @@ function drawFIR(ctx, S) {
   if (FIR_BOUNDARY.length < 2) return;
   ctx.save();
   ctx.strokeStyle = '#6e7681';
-  ctx.lineWidth = 1.5;
-  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
   ctx.setLineDash([]);
   ctx.beginPath();
   const p0 = S(FIR_BOUNDARY[0][0], FIR_BOUNDARY[0][1]);
@@ -728,37 +655,20 @@ function drawFIR(ctx, S) {
 const AIRWAYS = [
   // Magenta lines
   { color: '#ff66cc', group: 'OVF', waypoints: ['IKELA','MORTU','NOBAD','KAPLI'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA','MORTU','NOBAD','ENVAR'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA','MORTU','NOBAD','ELATO'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA','IDOSI','BIGEX','BEKOL'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU','DAGBU','IDOSI','IKELA'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU','SABNO'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU','RAGSO','DASON','COTON','CHALI','BEKOL'] },
   { color: '#ff66cc', group: 'OVF', waypoints: ['KAPLI','MADRU','SULUX','IGLEG','IKELA'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['KAPLI','ALLEY'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['CHALI','KAPLI'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SABNO','LEGOD','BEKOL'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['ROBIN','TAPPO','SAPAX','BEKOL'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT','ALLEY'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT','BIGEX','POVAM','NOPER','NOMAN'] },
-  { color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT','BIGEX','POVAM','RUSBI','UNTUL','SABNO'] },
   // Cyan lines
   { color: '#00e5ff', group: 'TRW', waypoints: ['SIKOU','GAMBA','MAPLE','COMBI','ROCCA','CANTO'] },
   { color: '#00e5ff', group: 'TRW', waypoints: ['SIKOU','RAGSO','DASON','COTON','CHALI'] },
-  { color: '#00e5ff', group: 'TRW', waypoints: ['IKELA','IDOSI','MYWAY','GAMBA','MAPLE','COMBI','ROCCA','CANTO'] },
-  { color: '#00e5ff', group: 'TRW', waypoints: ['DOSUT','DULOP','DUMOL'] },
-  { color: '#00e5ff', group: 'TRS', waypoints: ['DUMOL','MORTU','ALDOM','ISBAN'] },
+  { color: '#00e5ff', group: 'TRW', waypoints: ['IKELA','IDOSI','MYWAY','GAMBA'] },
+  { color: '#00e5ff', group: 'TRW', waypoints: ['DOSUT','DULOP','DUMOL','MORTU','ALDOM','ISBAN'] },
   { color: '#00e5ff', group: 'TRW', waypoints: ['ISBAN','ROBIN','CHALI'] },
-  { color: '#00e5ff', group: 'TRW', waypoints: ['DOSUT','DULOP','CARSO'] },
-  { color: '#00e5ff', group: 'TRS', waypoints: ['CARSO','SUKER','HOCKY','CYBER','BETTY'] },
-  { color: '#00e5ff', group: 'TRW', waypoints: ['ASOBA','DULOP','DUMOL'] },
-  { color: '#00e5ff', group: 'TRW', waypoints: ['ASOBA','DULOP','CARSO'] },
-  { color: '#00e5ff', group: 'TRS', waypoints: ['SABNO','TOFEE','SUKER','ALDOM','ISBAN',] },
-  { color: '#00e5ff', group: 'TRS', waypoints: ['SABNO','TOFEE','SUKER','HOCKY','CYBER','BETTY'] },
+  { color: '#00e5ff', group: 'TRS', waypoints: ['DULOP','CARSO','SUKER','HOCKY','CYBER','BETTY'] },
+  { color: '#00e5ff', group: 'TRW', waypoints: ['ASOBA','DULOP'] },
+  { color: '#00e5ff', group: 'TRS', waypoints: ['SABNO','TOFEE','SUKER','ALDOM'] },
   { color: '#00e5ff', group: 'TRS', waypoints: ['NOMAN','UNTUL','OSUMO','DAKTO','SONNY','BETTY'] },
   { color: '#00e5ff', group: 'TRE', waypoints: ['ELATO','MAGOG','ENPET','FISHA','ABBEY'] },
-  { color: '#00e5ff', group: 'TRE', waypoints: ['LELIM','MALKA','MAGOG','ENPET','FISHA','ABBEY'] },
-  { color: '#00e5ff', group: 'TRE', waypoints: ['DOTMI','MAGOG','ENPET','FISHA','ABBEY'] },
+  { color: '#00e5ff', group: 'TRE', waypoints: ['LELIM','MALKA','MAGOG'] },
+  { color: '#00e5ff', group: 'TRE', waypoints: ['DOTMI','MAGOG'] },
   { color: '#00e5ff', group: 'TRE', waypoints: ['ELATO','TUBBY','SAMMI','NEDLE','PONTI','BUMDI','SMT'] },
   // Yellow lines
   { color: '#ffea00', group: 'TRW', waypoints: ['PECAN','LAXET','EPDOS','ENBOK','EPKAL'] },
@@ -773,121 +683,37 @@ const AIRWAYS = [
   { color: '#ffea00', group: 'TRE', waypoints: ['CONGA','ELATO'] },
   { color: '#ffea00', group: 'TRE', waypoints: ['LEKEN','LARIT','NUDPI','SOUSA','BESDA','LIMSU','LELIM'] },
   { color: '#ffea00', group: 'TRE', waypoints: ['SOUSA','DOTMI'] },
-
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'GIVIV', 'LH'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'ISBIG', 'SAMAS'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['IKELA', 'LENKO'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['EPKAL', 'EGEMU', 'EXOTO'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['DONDA', 'DOSUT'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['DABGI', 'ATBUD', 'ASOBA'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['SABNO', 'DALRA', 'AKOTA'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['NOMAN', 'MUMOT', 'AVMUP'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['NOMAN', 'MIKIN', 'ALDIS'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['KAPLI', 'RECON'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['ENVAR', 'DADON', 'EXTRA', 'RENOT'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['KADLO', 'ANPOG', 'ELATO'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['CYRUS', 'COMBO', 'DADON', 'ELATO'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['LELIM', 'LAPUG', 'TOLAK', 'APAKA'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['DOTMI', 'BEBEM', 'SWA'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['BEKOL', 'IDUMA', 'SHL', 'ISLOM'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['BEKOL', 'IDUMA', 'SHL', 'UPRIK'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['BEKOL', 'IDUMA', 'SHL', 'YIN'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['BEKOL', 'IDUMA', 'SHL', 'NUSLA'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['POU', 'TAMOT'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['IDUMA', 'TAMOT'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['NLG', 'TAMOT'] },
-  // EX RTE
-  { color: '#888888', group: 'EX_RTE', waypoints: ['POU', 'ZUH', 'SIERA'] },
 ];
 
-const routeVisibility = { TRE: true, TRS: true, TRW: true, OVF: true, OVF_OTHER: false, EX_RTE: true };
+const routeVisibility = { TRE: true, TRS: true, TRW: true, OVF: true };
 function toggleRoute(group) {
   routeVisibility[group] = !routeVisibility[group];
   const btn = document.getElementById('btn-route-'+group);
-  btn.classList.toggle('place-active', routeVisibility[group]);
   btn.classList.toggle('route-btn-off', !routeVisibility[group]);
   draw();
 }
 
-// Colour priority: cyan > yellow > magenta
-const COLOR_PRIORITY = ['#00e5ff', '#ffea00', '#ff66cc'];
-
 function drawAirways(ctx, S) {
-  // Step 1: build segment map keyed by canonical "WP1|WP2"
-  const segMap = new Map();
   AIRWAYS.forEach(airway => {
-    for (let i = 0; i < airway.waypoints.length - 1; i++) {
-      const a = airway.waypoints[i], b = airway.waypoints[i+1];
-      const key = a < b ? a+'|'+b : b+'|'+a;
-      if (!segMap.has(key)) segMap.set(key, []);
-      segMap.get(key).push(airway);
-    }
-  });
-
-  // Step 2: for each unique segment, resolve winning airway
-  segMap.forEach((claimants, key) => {
-    // Filter to visible groups only
-    const visible = claimants.filter(aw => routeVisibility[aw.group]);
-    if (visible.length === 0) return;
-
-    // Pick highest priority colour among visible claimants
-    let winner = null;
-    for (const col of COLOR_PRIORITY) {
-      const match = visible.find(aw => aw.color === col);
-      if (match) { winner = match; break; }
-    }
-    if (!winner) winner = visible[0];
-
-    // Step 3: get actual waypoint coords (original order from winner)
-    const [wa, wb] = key.split('|');
-    // Find original order from winner's waypoints
-    const idxA = winner.waypoints.indexOf(wa);
-    const idxB = winner.waypoints.indexOf(wb);
-    const nameA = idxA < idxB ? wa : wb;
-    const nameB = idxA < idxB ? wb : wa;
-    const wpA = WAYPOINTS.find(w => w.name === nameA);
-    const wpB = WAYPOINTS.find(w => w.name === nameB);
-    if (!wpA || !wpB) return;
-
-    const pA = S(wpA.x, wpA.y), pB = S(wpB.x, wpB.y);
-
-    // Step 4: draw once
+    if (!routeVisibility[airway.group]) return;
+    const pts = airway.waypoints.map(name => {
+      const wp = WAYPOINTS.find(w => w.name === name);
+      return wp ? S(wp.x, wp.y) : null;
+    }).filter(Boolean);
+    if (pts.length < 2) return;
     ctx.save();
-    ctx.strokeStyle = winner.color;
-    ctx.lineWidth = winner.group === 'EX_RTE' ? 1 : (winner.lineWidth || 1);
-    ctx.globalAlpha = winner.group === 'EX_RTE' ? 0.5 : 0.4;
-    ctx.setLineDash(winner.dashed ? [6,4] : []);
+    ctx.strokeStyle = airway.color;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.4;
+    ctx.setLineDash([]);
     ctx.beginPath();
-    ctx.moveTo(pA.x, pA.y);
-    ctx.lineTo(pB.x, pB.y);
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
     ctx.restore();
   });
 }
 
-const MAG_VAR = -3; // degrees West: magnetic heading + MAG_VAR = true heading
 let placeMode = null; // null | 'A' | 'B'
 
 
@@ -899,8 +725,6 @@ function setHeadingMode(ac) {
   if (headingMode) { placeMode = null; updatePlaceBtns(); }
   updateHeadingBtns();
   updateWpBtns();
-  const canvas = document.getElementById('radarcanvas');
-  canvas.style.cursor = headingMode ? 'crosshair' : 'grab';
 }
 
 function updateHeadingBtns() {
@@ -908,11 +732,11 @@ function updateHeadingBtns() {
   const btnB = document.getElementById('hdgBtnB');
   if (btnA) {
     btnA.classList.toggle('place-active', headingMode === 'A');
-    btnA.textContent = headingMode === 'A' ? '🧭 Aiming VPCJH… click map or waypoint' : '🧭 Aim VPCJH';
+    btnA.textContent = headingMode === 'A' ? '🧭 Aiming VPCJH… pick waypoint' : '🧭 Aim VPCJH';
   }
   if (btnB) {
     btnB.classList.toggle('place-active', headingMode === 'B');
-    btnB.textContent = headingMode === 'B' ? '🧭 Aiming MLILY… click map or waypoint' : '🧭 Aim MLILY';
+    btnB.textContent = headingMode === 'B' ? '🧭 Aiming MLILY… pick waypoint' : '🧭 Aim MLILY';
   }
 }
 
@@ -927,9 +751,7 @@ function aimAtWaypoint(name) {
   const dy = wp.y - py;
   let hdg = Math.atan2(dx, dy) * 180 / Math.PI;
   if (hdg < 0) hdg += 360;
-  hdg = Math.round(hdg) - MAG_VAR; // convert true->magnetic for storage
-  if (hdg < 0) hdg += 360;
-  if (hdg >= 360) hdg -= 360;
+  hdg = Math.round(hdg);
   if (headingMode === 'A') setVal('hdga', hdg);
   else setVal('hdgb', hdg);
   headingMode = null;
@@ -952,11 +774,11 @@ function updatePlaceBtns() {
   const btnB = document.getElementById('placeBtnB');
   if (btnA) {
     btnA.classList.toggle('place-active', placeMode === 'A');
-    btnA.textContent = placeMode === 'A' ? '✈ Placing VPCJH… click map or waypoint' : '📍 Place VPCJH';
+    btnA.textContent = placeMode === 'A' ? '✈ Placing VPCJH… (click map)' : '📍 Place VPCJH';
   }
   if (btnB) {
     btnB.classList.toggle('place-active', placeMode === 'B');
-    btnB.textContent = placeMode === 'B' ? '✈ Placing MLILY… click map or waypoint' : '📍 Place MLILY';
+    btnB.textContent = placeMode === 'B' ? '✈ Placing MLILY… (click map)' : '📍 Place MLILY';
   }
 }
 
@@ -970,9 +792,11 @@ function getDrawTransform() {
 }
 
 function canvasClickPlace(e) {
-  if (!placeMode && !headingMode) return;
+  if (!placeMode) return;
   const canvas = document.getElementById('radarcanvas');
   const rect = canvas.getBoundingClientRect();
+  // Use rect dimensions directly — canvas.width equals clientWidth (no DPR scaling)
+  // so normalise by rect size to get true canvas pixel coords
   const scaleX = canvas.width  / rect.width;
   const scaleY = canvas.height / rect.height;
   const px = (e.clientX - rect.left) * scaleX;
@@ -981,7 +805,7 @@ function canvasClickPlace(e) {
   const { scale, toScreen, toNM } = getDrawTransform();
   let { x: nx, y: ny } = toNM(px, py);
 
-  // Snap to nearest waypoint within 20px
+  // Snap to nearest waypoint within 20px using same transform
   let snapDist = Infinity, snapWP = null;
   WAYPOINTS.forEach(wp => {
     const sp = toScreen(wp.x, wp.y);
@@ -989,27 +813,6 @@ function canvasClickPlace(e) {
     if (d < 20 && d < snapDist) { snapDist = d; snapWP = wp; }
   });
   if (snapWP) { nx = snapWP.x; ny = snapWP.y; }
-
-  if (headingMode) {
-    // Calculate bearing from aircraft current position to clicked point
-    const v = getVals();
-    const acx = headingMode === 'A' ? v.xa : v.xb;
-    const acy = headingMode === 'A' ? v.ya : v.yb;
-    const dx = nx - acx, dy = ny - acy;
-    let hdg = Math.atan2(dx, dy) * 180 / Math.PI;
-    if (hdg < 0) hdg += 360;
-    hdg = Math.round(hdg) - MAG_VAR; // convert true->magnetic for storage
-    if (hdg < 0) hdg += 360;
-    if (hdg >= 360) hdg -= 360;
-    if (headingMode === 'A') setVal('hdga', hdg);
-    else setVal('hdgb', hdg);
-    headingMode = null;
-    updateHeadingBtns();
-    updateWpBtns();
-    canvas.style.cursor = 'grab';
-    draw();
-    return;
-  }
 
   if (placeMode === 'A') {
     setVal('xa', parseFloat(nx.toFixed(2)));
@@ -1021,7 +824,6 @@ function canvasClickPlace(e) {
 
   placeMode = null;
   updatePlaceBtns();
-  updateWpBtns();
   canvas.style.cursor = 'grab';
   draw();
 }
@@ -1060,9 +862,9 @@ function toggleWpNames() {
   showWpNames = !showWpNames;
   const btn = document.getElementById('wpNamesBtn');
   if (btn) {
-    btn.textContent = 'WP Name';
-    btn.classList.toggle('place-active', showWpNames);
-    btn.classList.toggle('route-btn-off', !showWpNames);
+    btn.textContent = showWpNames ? '🏷 Names: ON' : '🏷 Names: OFF';
+    btn.style.background = showWpNames ? '#21262d' : '#30363d';
+    btn.style.color = showWpNames ? '#6e7681' : '#8b949e';
   }
   draw();
 }
@@ -1121,69 +923,8 @@ canvasEl.addEventListener('touchend',e=>{
 window.addEventListener('resize',draw);
 canvasEl.addEventListener('click',e=>{if(!isDragging_click)canvasClickPlace(e);});
 requestAnimationFrame(()=>{
-  autoFit();loadRandomScenario();drawCompass('a');drawCompass('b');
+  loadRandomScenario();
 });
-
-// ── Compass Rose ──────────────────────────────────────────────
-function drawCompass(ac){
-  const canvas=document.getElementById('compass_'+ac);
-  if(!canvas)return;
-  const dpr=window.devicePixelRatio||1;
-  const SIZE=216;
-  canvas.width=SIZE*dpr;canvas.height=SIZE*dpr;
-  canvas.style.width=SIZE+'px';canvas.style.height=SIZE+'px';
-  const ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
-  const W=SIZE,H=SIZE,cx=W/2,cy=H/2,r=W/2-2;
-  const hdg=parseFloat(document.getElementById('hdg'+ac+'_n').value)||0;
-  ctx.clearRect(0,0,W,H);
-  // Background
-  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
-  ctx.fillStyle='#0d1117';ctx.fill();
-  ctx.strokeStyle='#30363d';ctx.lineWidth=1;ctx.stroke();
-  // Tick marks
-  for(let i=0;i<360;i+=10){
-    const a=(i-90)*Math.PI/180;
-    const isMaj=i%90===0,isMid=i%30===0;
-    const inn=isMaj?r-16:isMid?r-12:r-6;
-    ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);
-    ctx.lineTo(cx+Math.cos(a)*inn,cy+Math.sin(a)*inn);
-    ctx.strokeStyle=isMaj?'#58a6ff':isMid?'#555':'#333';
-    ctx.lineWidth=isMaj?2.5:1.2;ctx.stroke();
-  }
-  // Cardinal labels
-  [['N',0],['E',90],['S',180],['W',270]].forEach(([l,d])=>{
-    const a=(d-90)*Math.PI/180,tr=r-24;
-    ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=l==='N'?'#f78166':'#777';
-    ctx.fillText(l,cx+Math.cos(a)*tr,cy+Math.sin(a)*tr);
-  });
-  // Needle
-  const na=(hdg-90)*Math.PI/180,nl=r-18;
-  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(na)*nl,cy+Math.sin(na)*nl);
-  ctx.strokeStyle=ac==='a'?'#58a6ff':'#f78166';ctx.lineWidth=4;
-  ctx.lineCap='round';ctx.stroke();
-  // Centre dot
-  ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
-
-}
-function compassSetHdg(e,ac){
-  const canvas=document.getElementById('compass_'+ac);
-  const rect=canvas.getBoundingClientRect();
-  const cx=canvas.width/2,cy=canvas.height/2;
-  const x=(e.clientX-rect.left)*(canvas.width/rect.width)-cx;
-  const y=(e.clientY-rect.top)*(canvas.height/rect.height)-cy;
-  let h=Math.round(Math.atan2(y,x)*180/Math.PI+90);
-  if(h<0)h+=360;if(h>=360)h-=360;
-  document.getElementById('hdg'+ac+'_n').value=h;
-  document.getElementById('hdg'+ac).value=h;
-  drawCompass(ac);draw();
-}
-let _cDrag=null;
-function compassDown(e,ac){_cDrag=ac;compassSetHdg(e,ac);}
-document.addEventListener('mousemove',e=>{if(_cDrag)compassSetHdg(e,_cDrag);});
-document.addEventListener('mouseup',()=>{_cDrag=null;});
-
 </script>
 </body>
 </html>
