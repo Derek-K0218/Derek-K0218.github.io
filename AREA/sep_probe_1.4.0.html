@@ -1879,41 +1879,42 @@
 			refreshPanel(); updateProbeUI(); updatePlaceBtns(); updateHeadingBtns(); updateAddBtn(); updateWpBtns(); draw();
 		}
 
-		// ── COMPASS ──────────────────────────────────────────────────────────────
+		// ── CANVAS INTERACTION ──────────────────────────────────
 		const canvasEl = _canvas;
 		const activePointers = new Map(); // pointerId → {clientX, clientY}
 		let isDragging_click = false, _mouseDownX = 0, _mouseDownY = 0;
+
 		canvasEl.addEventListener('pointerdown', e => {
+			// Middle mouse button — handle immediately, don't capture
+			if (e.pointerType === 'mouse' && e.button === 1) {
+				e.preventDefault();
+				if (probeMode === 'SELECT_2') handleProbeMiddleClick(e);
+				else tryRemoveProbeByDataBlockClick(e);
+				return;
+			}
+
+			e.preventDefault();
 			canvasEl.setPointerCapture(e.pointerId);
 			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
+			_mouseDownX = e.clientX;
+			_mouseDownY = e.clientY;
+			isDragging_click = false;
 			const count = activePointers.size;
 
 			if (count === 1) {
-				if (probeMode === 'SELECT1') {
-					handleProbeLeftClick(e);
-					return;
-				}
 				isDragging = true;
 				lastMouseX = e.clientX;
 				lastMouseY = e.clientY;
 				lastTouchDist = null;
-			}
-
-			if (count === 2) {
+			} else if (count === 2) {
 				isDragging = false;
 				const pts = [...activePointers.values()];
-				const dx = pts[0].x - pts[1].x;
-				const dy = pts[0].y - pts[1].y;
-				lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+				lastTouchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+			} else if (count === 3) {
+				if (probeMode === 'SELECT_2') handleProbeMiddleClick(e);
 			}
+		}, { passive: false });
 
-			if (count === 3) {
-				if (probeMode === 'SELECT2') {
-					handleProbeMiddleClick(e);
-				}
-			}
-		});
 		canvasEl.addEventListener('pointermove', e => {
 			if (!activePointers.has(e.pointerId)) return;
 			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1925,111 +1926,47 @@
 				lastMouseY = e.clientY;
 				return;
 			}
-
 			if (count === 2) {
 				const pts = [...activePointers.values()];
-				const dx = pts[0].x - pts[1].x;
-				const dy = pts[0].y - pts[1].y;
-				const dist = Math.sqrt(dx * dx + dy * dy);
-				if (lastTouchDist) {
-					applyZoomDelta(dist / lastTouchDist,
-						(pts[0].x + pts[1].x) / 2,
-						(pts[0].y + pts[1].y) / 2);
-				}
+				const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+				if (lastTouchDist) applyZoomDelta(dist / lastTouchDist,
+					(pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
 				lastTouchDist = dist;
 			}
 		});
 
 		canvasEl.addEventListener('pointerup', e => {
+			if (e.pointerType === 'mouse' && e.button === 1) return;
+			const moved = Math.hypot(e.clientX - _mouseDownX, e.clientY - _mouseDownY);
+			isDragging_click = moved < 5;
 			activePointers.delete(e.pointerId);
-			if (activePointers.size === 0) {
-				isDragging = false;
-				lastTouchDist = null;
+			if (activePointers.size === 0) { isDragging = false; lastTouchDist = null; }
+
+			// Handle left-click action on release
+			if (isDragging_click && e.button === 0) {
+				if (e.ctrlKey && probeMode === 'SELECT_2') { handleProbeMiddleClick(e); return; }
+				if (probeMode) { handleProbeLeftClick(e); return; }
+				canvasClickPlace(e);
 			}
 		});
+
 		canvasEl.addEventListener('pointercancel', e => {
 			activePointers.delete(e.pointerId);
-			if (activePointers.size === 0) {
-				isDragging = false;
-				lastTouchDist = null;
-			}
+			if (activePointers.size === 0) { isDragging = false; lastTouchDist = null; }
 		});
 
-		//canvasEl.addEventListener('mousedown', e => { if (e.button !== 0) return; isDragging = true; _mouseDownX = e.clientX; _mouseDownY = e.clientY; lastMouseX = e.clientX; lastMouseY = e.clientY; });
-		// Fix touchpad drag-stuck: listen on window for mouseup AND mouseleave on document
-		window.addEventListener('mouseup', e => { isDragging_click = isDragging && Math.hypot(e.clientX - _mouseDownX, e.clientY - _mouseDownY) > 4; isDragging = false; });
-		document.addEventListener('visibilitychange', () => { if (document.hidden) { isDragging = false; isDragging_click = false; } });
-		canvasEl.addEventListener('mouseleave', e => { if (e.buttons === 0) { isDragging = false; } });
-		//canvasEl.addEventListener('mousemove', e => { if (!isDragging) return; panByPixels(e.clientX - lastMouseX, e.clientY - lastMouseY); lastMouseX = e.clientX; lastMouseY = e.clientY; });
-		canvasEl.addEventListener('wheel', e => { e.preventDefault(); applyZoomDelta(e.deltaY < 0 ? 1.1 : 1 / 1.1); }, { passive: false });
-		canvasEl.addEventListener('dblclick', e => { e.preventDefault(); }, { passive: false });
-		/*canvasEl.addEventListener('touchstart', e => {
-			if (e.touches.length === 1) {
-				// Single finger — normal pan OR probe AC1 select
-				if (probeMode === 'SELECT1') {
-					e.preventDefault();
-					handleProbeLeftClick(e.touches[0]);
-					return;
-				}
-				isDragging = true;
-				lastMouseX = e.touches[0].clientX;
-				lastMouseY = e.touches[0].clientY;
-				lastTouchDist = null;
-			} else if (e.touches.length === 2) {
-				// Two fingers — pinch zoom
-				isDragging = false;
-				const dx = e.touches[0].clientX - e.touches[1].clientX;
-				const dy = e.touches[0].clientY - e.touches[1].clientY;
-				lastTouchDist = Math.sqrt(dx * dx + dy * dy);
-			} else if (e.touches.length === 3) {
-				// Three fingers — probe AC2 select
-				e.preventDefault();
-				if (probeMode === 'SELECT2') {
-					handleProbeMiddleClick(e.touches[0]);
-				}
-			}
-		}, { passive: false });
-		canvasEl.addEventListener('touchmove', e => {
+		canvasEl.addEventListener('wheel', e => {
 			e.preventDefault();
-			if (e.touches.length === 1 && isDragging) { const t = e.touches[0]; panByPixels(t.clientX - lastMouseX, t.clientY - lastMouseY); lastMouseX = t.clientX; lastMouseY = t.clientY; }
-			else if (e.touches.length === 2) {
-				const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
-				const dist = Math.sqrt(dx * dx + dy * dy);
-				if (lastTouchDist !== null && dist > 0) applyZoomDelta(dist / lastTouchDist);
-				lastTouchDist = dist;
-			}
+			applyZoomDelta(e.deltaY < 0 ? 1.1 : 1 / 1.1);
 		}, { passive: false });
-		canvasEl.addEventListener('touchend', e => {
-			if (e.touches.length === 0) {
-				isDragging = false;
-				lastTouchDist = null;
-			} else if (e.touches.length === 1) {
-				lastMouseX = e.touches[0].clientX;
-				lastMouseY = e.touches[0].clientY;
-				lastTouchDist = null;
-			}
-		}, { passive: false });*/
 
-		canvasEl.addEventListener('click', e => {
-			if (e.ctrlKey && probeMode === 'SELECT2') {
-				handleProbeMiddleClick(e);
-				return;
-			}
-			if (isDragging_click) return;
-			if (probeMode && handleProbeLeftClick(e)) return;
-			canvasClickPlace(e);
-		});
-		canvasEl.addEventListener('auxclick', e => {
-			if (e.button !== 1) return;
-			e.preventDefault();
-			if (probeMode === 'SELECT_2') { handleProbeMiddleClick(e); return; }
-			if (!probeMode) tryRemoveProbeByDataBlockClick(e);
-		});
-		requestAnimationFrame(() => {
-			autoFit(); draw(); drawCompass('sel');
+		canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+		canvasEl.addEventListener('dblclick', e => e.preventDefault());
+
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) { isDragging = false; isDragging_click = false; }
 		});
 
-		// ── Compass Rose ──────────────────────────────────────────────
 		// ── COMPASS WIDGET ─────────────────────────────────────────────────────────
 		function drawCompass(ac) {
 			const canvas = document.getElementById('compass' + ac);
