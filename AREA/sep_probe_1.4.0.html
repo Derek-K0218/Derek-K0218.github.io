@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>Sep Probe 1.4.0</title>
+	<style>
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			background: #0d1117;
+			color: #e6edf3;
+			font-family: 'Segoe UI', sans-serif;
+			height: 100dvh;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+
+		h1 {
+			text-align: center;
+			padding: 10px 12px;
+			font-size: 1.3rem;
+			letter-spacing: 2px;
+			color: #58a6ff;
+			border-bottom: 1px solid #21262d;
+			background: #161b22;
+		}
+
+		.subtitle {
+			text-align: center;
+			font-size: 0.75rem;
+			color: #8b949e;
+			padding: 4px 0 10px;
+			background: #161b22;
+		}
+
+		.main {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.canvas-wrap {
+			order: 1;
+			flex: 0 0 40vh;
+			position: relative;
+			background: #0c0c0c;
+			overflow: hidden;
+		}
+
+		.controls {
+			order: 2;
+			flex: 1;
+			min-height: 0;
+			background: #161b22;
+			border-top: 1px solid #21262d;
+			overflow-y: auto;
+			padding: 12px;
+			padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+			padding-top: 0px
+		}
+
+		@media (min-width: 768px) {
+			.main {
+				flex-direction: row;
+			}
+
+			.controls {
+				order: 0;
+				width: 480px;
+				flex: none;
+				border-top: none;
+				border-right: 1px solid #21262d;
+				padding: 16px;
+				overflow-y: auto;
+			}
+
+			.canvas-wrap {
+				order: 0;
+				flex: 1;
+				height: auto;
+			}
+		}
+
+		@media (max-height: 500px) and (orientation: landscape) {
+			.main {
+				flex-direction: row;
+			}
+
+			.controls {
+				order: 0;
+				width: 300px;
+				flex: none;
+				border-top: none;
+				border-right: 1px solid #21262d;
+				padding: 10px;
+				overflow-y: auto;
+				max-height: 100dvh;
+			}
+
+			.canvas-wrap {
+				order: 0;
+				flex: 1;
+				height: auto;
+			}
+		}
+
+		.ac-panel {
+			background: #0d1117;
+			border: 1px solid #21262d;
+			border-radius: 8px;
+			margin-bottom: 14px;
+			overflow: hidden;
+		}
+
+		.ac-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 11px 14px;
+			cursor: pointer;
+			user-select: none;
+			transition: background 0.15s;
+		}
+
+		.ac-header:hover {
+			background: #161b22;
+		}
+
+		.ac-header-left {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 0.85rem;
+			font-weight: 600;
+		}
+
+		.dot-a {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #58a6ff;
+			display: inline-block;
+			flex-shrink: 0;
+		}
+
+		.dot-b {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #f78166;
+			display: inline-block;
+			flex-shrink: 0;
+		}
+
+		.ac-toggle {
+			font-size: 0.72rem;
+			color: #8b949e;
+			background: #21262d;
+			border: 1px solid #30363d;
+			border-radius: 4px;
+			padding: 3px 9px;
+			cursor: pointer;
+			white-space: nowrap;
+			transition: background 0.15s, color 0.15s;
+		}
+
+		.ac-toggle:hover {
+			background: #30363d;
+			color: #e6edf3;
+		}
+
+		.ac-toggle.open {
+			background: #1f6feb;
+			color: #fff;
+			border-color: #1f6feb;
+		}
+
+		.ac-body {
+			padding: 0 14px 14px;
+			display: none;
+		}
+
+		.ac-body.open {
+			display: block;
+		}
+
+		.field {
+			margin-bottom: 10px;
+		}
+
+		.field .field-label {
+			font-size: 0.73rem;
+			color: #8b949e;
+			display: block;
+			margin-bottom: 4px;
+		}
+
+		.field .field-row {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.field input[type=range] {
+			flex: 1;
+			accent-color: #58a6ff;
+			cursor: pointer;
+			min-width: 0;
+		}
+
+		.field input[type=number] {
+			width: 72px;
+			background: #21262d;
+			border: 1px solid #30363d;
+			border-radius: 5px;
+			color: #e6edf3;
+			font-size: 0.78rem;
+			font-weight: 600;
+			padding: 3px 6px;
+			text-align: right;
+			-moz-appearance: textfield;
+		}
+
+		.field input[type=number]::-webkit-inner-spin-button,
+		.field input[type=number]::-webkit-outer-spin-button {
+			-webkit-appearance: none;
+		}
+
+		.field input[type=number]:focus {
+			outline: 1px solid #58a6ff;
+			border-color: #58a6ff;
+		}
+
+		.field .unit {
+			font-size: 0.7rem;
+			color: #8b949e;
+			margin-top: 3px;
+		}
+
+		.grid-panel {
+			background: #0d1117;
+			border: 1px solid #30363d;
+			border-radius: 8px;
+			padding: 12px 14px;
+			margin-bottom: 14px;
+		}
+
+		.grid-panel h3 {
+			font-size: 0.78rem;
+			color: #8b949e;
+			margin-bottom: 10px;
+			letter-spacing: 1px;
+		}
+
+		.zoom-row {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 6px;
+		}
+
+		.zoom-row label {
+			font-size: 0.73rem;
+			color: #8b949e;
+			white-space: nowrap;
+			min-width: 60px;
+		}
+
+		.zoom-row input[type=range] {
+			flex: 1;
+			accent-color: #58a6ff;
+			cursor: pointer;
+		}
+
+		.zoom-val {
+			font-size: 0.82rem;
+			color: #e6edf3;
+			font-weight: 700;
+			min-width: 62px;
+			text-align: right;
+		}
+
+		.result-box {
+			background: #0d1117;
+			border: 1px solid #21262d;
+			border-radius: 8px;
+			padding: 14px;
+			margin-bottom: 14px;
+		}
+
+		.result-box h3 {
+			font-size: 0.78rem;
+			color: #8b949e;
+			margin-bottom: 12px;
+			letter-spacing: 1px;
+		}
+
+		.metric {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 9px 0;
+			border-bottom: 1px solid #21262d;
+		}
+
+		.metric:last-child {
+			border-bottom: none;
+		}
+
+		.metric-label {
+			font-size: 0.75rem;
+			color: #8b949e;
+		}
+
+		.metric-val {
+			font-size: 1.05rem;
+			font-weight: 700;
+		}
+
+		.val-safe {
+			color: #3fb950;
+		}
+
+		.val-warn {
+			color: #d29922;
+		}
+
+		.val-crit {
+			color: #f78166;
+		}
+
+		.val-blue {
+			color: #58a6ff;
+		}
+
+		.sep-bar {
+			height: 7px;
+			border-radius: 4px;
+			margin-top: 10px;
+			background: #21262d;
+			overflow: hidden;
+		}
+
+		.sep-fill {
+			height: 100%;
+			border-radius: 4px;
+			transition: width 0.3s, background 0.3s;
+		}
+
+		.sep-label {
+			font-size: 0.68rem;
+			color: #8b949e;
+			margin-top: 4px;
+			display: flex;
+			justify-content: space-between;
+		}
+
+		.btn-row {
+			display: flex;
+			gap: 8px;
+			margin-top: 14px;
+		}
+
+		button.main-btn {
+			flex: 1;
+			padding: 9px;
+			border: none;
+			border-radius: 6px;
+			font-size: 0.8rem;
+			cursor: pointer;
+			font-weight: 600;
+		}
+
+		.btn-reset {
+			background: #21262d;
+			color: #8b949e;
+		}
+
+		.btn-reset:hover {
+			background: #30363d;
+			color: #e6edf3;
+		}
+
+		.btn-scenario {
+			background: #1f6feb;
+			color: #fff;
+		}
+
+		.btn-scenario:hover {
+			background: #388bfd;
+		}
+
+		canvas {
+			display: block;
+			width: 100%;
+			height: 100%;
+			touch-action: none;
+		}
+
+		.info-bar {
+			position: absolute;
+			top: 10px;
+			right: 14px;
+			font-size: 0.72rem;
+			color: #8b949e;
+			background: #161b22cc;
+			border: 1px solid #21262d;
+			border-radius: 6px;
+			padding: 6px 10px;
+			line-height: 1.6;
+			pointer-events: none;
+			white-space: pre;
+		}
+
+		.route-btn-off {
+			background: #21262d !important;
+			border-color: #30363d !important;
+			color: #6e7681 !important;
+			text-decoration: line-through;
+		}
+
+		.place-active {
+			background: #1f6feb !important;
+			border-color: #1f6feb !important;
+			color: #fff !important;
+		}
+
+		.wp-btn {
+			background: #21262d;
+			border: 1px solid #d29922;
+			color: #d29922;
+			border-radius: 4px;
+			padding: 4px 9px;
+			font-size: 0.72rem;
+			font-family: monospace;
+			cursor: not-allowed;
+			opacity: 0.5;
+			transition: all 0.15s;
+		}
+
+		.wp-btn:hover {
+			background: #2d2a1a;
+		}
+
+		.ac-badge {
+			font-size: 0.7rem;
+			color: #8b949e;
+			background: #21262d;
+			border-radius: 10px;
+			padding: 2px 8px;
+			margin-left: auto;
+		}
+
+		.empty-hint {
+			text-align: center;
+			padding: 18px 0;
+			color: #8b949e;
+			font-size: 0.78rem;
+			line-height: 1.8;
+		}
+
+		.map-btn-off {
+			background: #21262d !important;
+			border-color: #30363d !important;
+			color: #6e7681 !important;
+			text-decoration: line-through;
+		}
+	</style>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-title" content="Sep Probe Sim">
+</head>
+
+<body>
+
+	<div class="main">
+		<div class="canvas-wrap">
+			<canvas id="radarcanvas"></canvas>
+		</div>
+		<div class="controls">
+			<h1>SEP PROBE SIMULATOR</h1>
+			<div class="panel" style="border-color:#30363d; padding:8px 0px">
+				<div class="panel-hdr">
+					<span>✈ Aircraft</span>
+					<select id="acSelect" onchange="onAcSelectChange()"
+						style="flex:1;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:0.78rem;font-weight:600;padding:3px 6px;cursor:pointer;">
+						<option value="">— no aircraft —</option>
+					</select>
+					<span class="ac-badge" id="acBadge">0 / 40</span>
+				</div>
+				<div class="panel-body">
+					<div id="noAcHint" class="empty-hint">No aircraft on map.<br>Use <strong>➕ Add Aircraft</strong>
+						below.</div>
+					<div id="acFields" style="display:none">
+						<div class="field"><span class="lbl">Heading</span>
+							<div class="row">
+								<canvas id="compass_sel" width="72" height="72"
+									style="cursor:crosshair;border-radius:50%;flex-shrink:0;"
+									onmousedown="compassDown(event,'_sel')"
+									ontouchstart="compassDown(event.touches[0],'_sel')"></canvas>
+								<input type="number" id="hdg_sel" min="0" max="359" value="0"
+									oninput="updateAc('hdg',this.value)">
+							</div>
+							<div style="font-size:0.7rem;color:#8b949e;margin-top:3px;">degrees (0–359)</div>
+						</div>
+						<div class="field"><span class="lbl">Ground Speed</span>
+							<div class="row"><input type="range" id="gs_sl" min="280" max="550" value="350"
+									oninput="updateAc('gs',this.value)"><input type="number" id="gs_n" min="280"
+									max="550" value="350" oninput="updateAcN('gs',this.value,280,550,350)"></div>
+							<div style="font-size:0.7rem;color:#8b949e;margin-top:3px;">knots (280–550)</div>
+						</div>
+						<div class="field"><span class="lbl">Position X (East/West NM)</span>
+							<div class="row"><input type="range" id="x_sl" min="-300" max="300" value="0"
+									oninput="updateAc('x',this.value)">
+								<input type="number" id="x_n" min="-300" max="300" value="0"
+									oninput="updateAcN('x',this.value,-300,300,0)">
+							</div>
+						</div>
+						<div class="field"><span class="lbl">Position Y (North/South NM)</span>
+							<div class="row"><input type="range" id="y_sl" min="-300" max="300" value="0"
+									oninput="updateAc('y',this.value)"><input type="number" id="y_n" min="-300"
+									max="300" value="0" oninput="updateAcN('y',this.value,-300,300,0)"></div>
+						</div>
+						<div class="field"><span class="lbl">Flight Level</span>
+							<div class="row"><select id="fl_sel" onchange="updateAc('fl',this.value)"></select></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="panel" style="border-color:#30363d;">
+				<div class="panel-hdr">📍 PLACE &amp; ADD AIRCRAFT</div>
+				<div class="panel-body">
+					<div style="font-size:0.7rem;color:#58a6ff;margin-bottom:10px;">Select → Place or Aim → click
+						map<br><span style="color:#8b949e;">Snaps to waypoints within 20 px</span></div>
+					<div style="display:flex;gap:8px;margin-bottom:8px;">
+						<button id="placeBtnSel" onclick="setPlaceMode('SEL')"
+							style="flex:1;padding:9px 6px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#58a6ff;font-size:0.78rem;font-weight:600;cursor:pointer;">📍
+							Place Selected</button>
+						<button id="hdgBtnSel" onclick="setHeadingMode('SEL')"
+							style="flex:1;padding:9px 6px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#58a6ff;font-size:0.78rem;font-weight:600;cursor:pointer;">🧭
+							Aim Selected</button>
+					</div>
+					<div style="display:flex;gap:8px;margin-bottom:10px;">
+						<button id="addAcBtn" onclick="toggleAddMode()"
+							style="flex:1;padding:9px 6px;background:#238636;border:1px solid #2ea043;border-radius:6px;color:#fff;font-size:0.78rem;font-weight:600;cursor:pointer;">➕
+							Add Aircraft</button>
+					</div>
+					<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+						<button id="wpNamesBtn" onclick="toggleWpNames()"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">WP
+							Names</button>
+					</div>
+					<div style="font-size:0.74rem;color:#8b949e;margin-bottom:5px;">WAYPOINTS</div>
+					<div style="display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow-y:auto;">
+						<button onclick="placeAtWaypoint('ABBEY')" class="wp-btn">▲ ABBEY</button>
+						<button onclick="placeAtWaypoint('AKOTA')" class="wp-btn">▲ AKOTA</button>
+						<button onclick="placeAtWaypoint('ALDIS')" class="wp-btn">▲ ALDIS</button>
+						<button onclick="placeAtWaypoint('ALDOM')" class="wp-btn">▲ ALDOM</button>
+						<button onclick="placeAtWaypoint('ALLEY')" class="wp-btn">▲ ALLEY</button>
+						<button onclick="placeAtWaypoint('ANPOG')" class="wp-btn">▲ ANPOG</button>
+						<button onclick="placeAtWaypoint('APAKA')" class="wp-btn">▲ APAKA</button>
+						<button onclick="placeAtWaypoint('ASOBA')" class="wp-btn">▲ ASOBA</button>
+						<button onclick="placeAtWaypoint('ATBUD')" class="wp-btn">▲ ATBUD</button>
+						<button onclick="placeAtWaypoint('AVMUP')" class="wp-btn">▲ AVMUP</button>
+						<button onclick="placeAtWaypoint('BEBEM')" class="wp-btn">▲ BEBEM</button>
+						<button onclick="placeAtWaypoint('BEKOL')" class="wp-btn">▲ BEKOL</button>
+						<button onclick="placeAtWaypoint('BESDA')" class="wp-btn">▲ BESDA</button>
+						<button onclick="placeAtWaypoint('BETTY')" class="wp-btn">▲ BETTY</button>
+						<button onclick="placeAtWaypoint('BIGEX')" class="wp-btn">▲ BIGEX</button>
+						<button onclick="placeAtWaypoint('BIMIX')" class="wp-btn">▲ BIMIX</button>
+						<button onclick="placeAtWaypoint('BUMDI')" class="wp-btn">▲ BUMDI</button>
+						<button onclick="placeAtWaypoint('CANTO')" class="wp-btn">▲ CANTO</button>
+						<button onclick="placeAtWaypoint('CARSO')" class="wp-btn">▲ CARSO</button>
+						<button onclick="placeAtWaypoint('CHALI')" class="wp-btn">▲ CHALI</button>
+						<button onclick="placeAtWaypoint('COMBI')" class="wp-btn">▲ COMBI</button>
+						<button onclick="placeAtWaypoint('COMBO')" class="wp-btn">▲ COMBO</button>
+						<button onclick="placeAtWaypoint('CONGA')" class="wp-btn">▲ CONGA</button>
+						<button onclick="placeAtWaypoint('COTON')" class="wp-btn">▲ COTON</button>
+						<button onclick="placeAtWaypoint('CYBER')" class="wp-btn">▲ CYBER</button>
+						<button onclick="placeAtWaypoint('CYRUS')" class="wp-btn">▲ CYRUS</button>
+						<button onclick="placeAtWaypoint('DABGI')" class="wp-btn">▲ DABGI</button>
+						<button onclick="placeAtWaypoint('DADON')" class="wp-btn">▲ DADON</button>
+						<button onclick="placeAtWaypoint('DAGBU')" class="wp-btn">▲ DAGBU</button>
+						<button onclick="placeAtWaypoint('DAKTO')" class="wp-btn">▲ DAKTO</button>
+						<button onclick="placeAtWaypoint('DALOL')" class="wp-btn">▲ DALOL</button>
+						<button onclick="placeAtWaypoint('DALRA')" class="wp-btn">▲ DALRA</button>
+						<button onclick="placeAtWaypoint('DASON')" class="wp-btn">▲ DASON</button>
+						<button onclick="placeAtWaypoint('DONDA')" class="wp-btn">▲ DONDA</button>
+						<button onclick="placeAtWaypoint('DOSUT')" class="wp-btn">▲ DOSUT</button>
+						<button onclick="placeAtWaypoint('DOTMI')" class="wp-btn">▲ DOTMI</button>
+						<button onclick="placeAtWaypoint('DULOP')" class="wp-btn">▲ DULOP</button>
+						<button onclick="placeAtWaypoint('DUMEP')" class="wp-btn">▲ DUMEP</button>
+						<button onclick="placeAtWaypoint('DUMOL')" class="wp-btn">▲ DUMOL</button>
+						<button onclick="placeAtWaypoint('EGEMU')" class="wp-btn">▲ EGEMU</button>
+						<button onclick="placeAtWaypoint('ELATO')" class="wp-btn">▲ ELATO</button>
+						<button onclick="placeAtWaypoint('ENBOK')" class="wp-btn">▲ ENBOK</button>
+						<button onclick="placeAtWaypoint('ENPET')" class="wp-btn">▲ ENPET</button>
+						<button onclick="placeAtWaypoint('ENROM')" class="wp-btn">▲ ENROM</button>
+						<button onclick="placeAtWaypoint('ENVAR')" class="wp-btn">▲ ENVAR</button>
+						<button onclick="placeAtWaypoint('EPDOS')" class="wp-btn">▲ EPDOS</button>
+						<button onclick="placeAtWaypoint('EPKAL')" class="wp-btn">▲ EPKAL</button>
+						<button onclick="placeAtWaypoint('EXOTO')" class="wp-btn">▲ EXOTO</button>
+						<button onclick="placeAtWaypoint('EXTRA')" class="wp-btn">▲ EXTRA</button>
+						<button onclick="placeAtWaypoint('FISHA')" class="wp-btn">▲ FISHA</button>
+						<button onclick="placeAtWaypoint('GAMBA')" class="wp-btn">▲ GAMBA</button>
+						<button onclick="placeAtWaypoint('GIVIV')" class="wp-btn">▲ GIVIV</button>
+						<button onclick="placeAtWaypoint('GOBBI')" class="wp-btn">▲ GOBBI</button>
+						<button onclick="placeAtWaypoint('HOCKY')" class="wp-btn">▲ HOCKY</button>
+						<button onclick="placeAtWaypoint('IDOSI')" class="wp-btn">▲ IDOSI</button>
+						<button onclick="placeAtWaypoint('IDUMA')" class="wp-btn">▲ IDUMA</button>
+						<button onclick="placeAtWaypoint('IGLEG')" class="wp-btn">▲ IGLEG</button>
+						<button onclick="placeAtWaypoint('IKELA')" class="wp-btn">▲ IKELA</button>
+						<button onclick="placeAtWaypoint('ISBAN')" class="wp-btn">▲ ISBAN</button>
+						<button onclick="placeAtWaypoint('ISBIG')" class="wp-btn">▲ ISBIG</button>
+						<button onclick="placeAtWaypoint('ISLOM')" class="wp-btn">▲ ISLOM</button>
+						<button onclick="placeAtWaypoint('KADLO')" class="wp-btn">▲ KADLO</button>
+						<button onclick="placeAtWaypoint('KAPLI')" class="wp-btn">▲ KAPLI</button>
+						<button onclick="placeAtWaypoint('LANDA')" class="wp-btn">▲ LANDA</button>
+						<button onclick="placeAtWaypoint('LAPUG')" class="wp-btn">▲ LAPUG</button>
+						<button onclick="placeAtWaypoint('LARIT')" class="wp-btn">▲ LARIT</button>
+						<button onclick="placeAtWaypoint('LAXET')" class="wp-btn">▲ LAXET</button>
+						<button onclick="placeAtWaypoint('LEGOD')" class="wp-btn">▲ LEGOD</button>
+						<button onclick="placeAtWaypoint('LEKEN')" class="wp-btn">▲ LEKEN</button>
+						<button onclick="placeAtWaypoint('LELIM')" class="wp-btn">▲ LELIM</button>
+						<button onclick="placeAtWaypoint('LENKO')" class="wp-btn">▲ LENKO</button>
+						<button onclick="placeAtWaypoint('LH')" class="wp-btn">▲ LH</button>
+						<button onclick="placeAtWaypoint('LIMSU')" class="wp-btn">▲ LIMSU</button>
+						<button onclick="placeAtWaypoint('MADRU')" class="wp-btn">▲ MADRU</button>
+						<button onclick="placeAtWaypoint('MAGOG')" class="wp-btn">▲ MAGOG</button>
+						<button onclick="placeAtWaypoint('MALKA')" class="wp-btn">▲ MALKA</button>
+						<button onclick="placeAtWaypoint('MAPLE')" class="wp-btn">▲ MAPLE</button>
+						<button onclick="placeAtWaypoint('MEBKI')" class="wp-btn">▲ MEBKI</button>
+						<button onclick="placeAtWaypoint('MIGUG')" class="wp-btn">▲ MIGUG</button>
+						<button onclick="placeAtWaypoint('MIKIN')" class="wp-btn">▲ MIKIN</button>
+						<button onclick="placeAtWaypoint('MORTU')" class="wp-btn">▲ MORTU</button>
+						<button onclick="placeAtWaypoint('MULET')" class="wp-btn">▲ MULET</button>
+						<button onclick="placeAtWaypoint('MUMOT')" class="wp-btn">▲ MUMOT</button>
+						<button onclick="placeAtWaypoint('MYWAY')" class="wp-btn">▲ MYWAY</button>
+						<button onclick="placeAtWaypoint('NEDLE')" class="wp-btn">▲ NEDLE</button>
+						<button onclick="placeAtWaypoint('NLG')" class="wp-btn">▲ NLG</button>
+						<button onclick="placeAtWaypoint('NOBAD')" class="wp-btn">▲ NOBAD</button>
+						<button onclick="placeAtWaypoint('NOMAN')" class="wp-btn">▲ NOMAN</button>
+						<button onclick="placeAtWaypoint('NOPER')" class="wp-btn">▲ NOPER</button>
+						<button onclick="placeAtWaypoint('NUDPI')" class="wp-btn">▲ NUDPI</button>
+						<button onclick="placeAtWaypoint('NUSLA')" class="wp-btn">▲ NUSLA</button>
+						<button onclick="placeAtWaypoint('OSUMO')" class="wp-btn">▲ OSUMO</button>
+						<button onclick="placeAtWaypoint('PECAN')" class="wp-btn">▲ PECAN</button>
+						<button onclick="placeAtWaypoint('PONTI')" class="wp-btn">▲ PONTI</button>
+						<button onclick="placeAtWaypoint('POU')" class="wp-btn">▲ POU</button>
+						<button onclick="placeAtWaypoint('POVAM')" class="wp-btn">▲ POVAM</button>
+						<button onclick="placeAtWaypoint('RAGSO')" class="wp-btn">▲ RAGSO</button>
+						<button onclick="placeAtWaypoint('RECON')" class="wp-btn">▲ RECON</button>
+						<button onclick="placeAtWaypoint('RENOT')" class="wp-btn">▲ RENOT</button>
+						<button onclick="placeAtWaypoint('ROBIN')" class="wp-btn">▲ ROBIN</button>
+						<button onclick="placeAtWaypoint('ROCCA')" class="wp-btn">▲ ROCCA</button>
+						<button onclick="placeAtWaypoint('RUSBI')" class="wp-btn">▲ RUSBI</button>
+						<button onclick="placeAtWaypoint('SABNO')" class="wp-btn">▲ SABNO</button>
+						<button onclick="placeAtWaypoint('SAMAS')" class="wp-btn">▲ SAMAS</button>
+						<button onclick="placeAtWaypoint('SAMMI')" class="wp-btn">▲ SAMMI</button>
+						<button onclick="placeAtWaypoint('SANKU')" class="wp-btn">▲ SANKU</button>
+						<button onclick="placeAtWaypoint('SAPAX')" class="wp-btn">▲ SAPAX</button>
+						<button onclick="placeAtWaypoint('SHL')" class="wp-btn">▲ SHL</button>
+						<button onclick="placeAtWaypoint('SIERA')" class="wp-btn">▲ SIERA</button>
+						<button onclick="placeAtWaypoint('SIKOU')" class="wp-btn">▲ SIKOU</button>
+						<button onclick="placeAtWaypoint('SKATE')" class="wp-btn">▲ SKATE</button>
+						<button onclick="placeAtWaypoint('SMT')" class="wp-btn">▲ SMT</button>
+						<button onclick="placeAtWaypoint('SONNY')" class="wp-btn">▲ SONNY</button>
+						<button onclick="placeAtWaypoint('SOUSA')" class="wp-btn">▲ SOUSA</button>
+						<button onclick="placeAtWaypoint('SUKER')" class="wp-btn">▲ SUKER</button>
+						<button onclick="placeAtWaypoint('SULUX')" class="wp-btn">▲ SULUX</button>
+						<button onclick="placeAtWaypoint('SURFA')" class="wp-btn">▲ SURFA</button>
+						<button onclick="placeAtWaypoint('SWA')" class="wp-btn">▲ SWA</button>
+						<button onclick="placeAtWaypoint('TAMOT')" class="wp-btn">▲ TAMOT</button>
+						<button onclick="placeAtWaypoint('TAPPO')" class="wp-btn">▲ TAPPO</button>
+						<button onclick="placeAtWaypoint('TOFEE')" class="wp-btn">▲ TOFEE</button>
+						<button onclick="placeAtWaypoint('TOLAK')" class="wp-btn">▲ TOLAK</button>
+						<button onclick="placeAtWaypoint('TUBBY')" class="wp-btn">▲ TUBBY</button>
+						<button onclick="placeAtWaypoint('UNTUL')" class="wp-btn">▲ UNTUL</button>
+						<button onclick="placeAtWaypoint('UPRIK')" class="wp-btn">▲ UPRIK</button>
+						<button onclick="placeAtWaypoint('XEMEK')" class="wp-btn">▲ XEMEK</button>
+						<button onclick="placeAtWaypoint('YIN')" class="wp-btn">▲ YIN</button>
+						<button onclick="placeAtWaypoint('ZUH')" class="wp-btn">▲ ZUH</button>
+					</div>
+					<div id="route-toggle-btns"
+						style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;margin-bottom:8px">
+						<span style="color:#aaa;font-size:12px;font-family:monospace;">ROUTES:</span>
+						<button id="btn-route-TRE" onclick="toggleRoute('TRE')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">TRE</button>
+						<button id="btn-route-TRS" onclick="toggleRoute('TRS')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">TRS</button>
+						<button id="btn-route-TRW" onclick="toggleRoute('TRW')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">TRW</button>
+						<button id="btn-route-OVF" onclick="toggleRoute('OVF')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">OVF</button>
+						<button id="btn-route-OVF_OTHER" onclick="toggleRoute('OVF_OTHER')" class="route-btn-off"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">OVF
+							Other</button>
+						<button id="btn-route-EX_RTE" onclick="toggleRoute('EX_RTE')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">EX
+							RTE</button>
+					</div>
+					<div id="map-toggle-btns"
+						style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;margin-bottom:8px">
+						<span style="color:#aaa;font-size:12px;font-family:monospace;">MAP:</span>
+						<button id="btn-map-TRW" onclick="toggleMap('TRW')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">TRW</button>
+						<button id="btn-map-TRV" onclick="toggleMap('TRV')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">TRV</button>
+						<button id="btn-map-TRD" onclick="toggleMap('TRD')" class="place-active"
+							style="padding:5px 12px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#58a6ff;font-size:0.74rem;font-weight:600;cursor:pointer;">TRD</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="grid-panel">
+				<h3>◈ GRID SIZE / ZOOM</h3>
+				<div class="zoom-row"><label>Grid Size</label><input type="range" id="zoomslider" min="0" max="100"
+						step="1" value="50" oninput="syncZoom(this.value)"><span class="zoom-val" id="zoomlabel">10
+						NM</span></div>
+				<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#8b949e;margin-top:2px;">
+					<span>1 NM</span><span>100 NM</span>
+				</div>
+			</div>
+
+			<div style="margin-bottom:10px;">
+				<button id="sepProbeBtn" onclick="toggleSepProbe()"
+					style="width:100%;background:#1f6feb;color:#fff;padding:10px;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:1px;">SEP
+					PROBE</button>
+				<div id="probePrompt"
+					style="font-size:0.72rem;color:#8b949e;margin-top:6px;min-height:1.2em;text-align:center;"></div>
+			</div>
+			<div class="btn-row"><button class="main-btn btn-reset" onclick="resetAll()">RESET ALL</button></div>
+
+		</div>
+	</div>
+
+	<div id="acContextMenu"
+		style="display:none;position:fixed;z-index:9999;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:6px 0;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+		<div id="acContextLabel"
+			style="font-size:0.72rem;color:#8b949e;padding:5px 14px 4px;border-bottom:1px solid #21262d;"></div>
+		<button onclick="removeContextAc()"
+			style="width:100%;text-align:left;padding:8px 14px;background:none;border:none;color:#f78166;font-size:0.82rem;font-weight:600;cursor:pointer;">🗑
+			Remove aircraft</button>
+		<div style="border-top:1px solid #21262d;margin-top:2px;padding:5px 14px;"><span
+				style="font-size:0.68rem;color:#484f58;">More actions coming soon…</span></div>
+	</div>
+	<script>
+		const _canvas = document.getElementById('radarcanvas');
+		// ── CONSTANTS ──────────────────────────────────────────────────────────────
+		const ZOOM_MIN = 1, ZOOM_MAX = 100;
+		let gridSize = 10, offsetX = 0, offsetY = 0, isDragging = false, lastMouseX = 0, lastMouseY = 0, lastTouchDist = null;
+		let currentScenario = null;
+		const FONT = '13px monospace';
+		const LINE_H = 17;
+		const MAGVAR = -3;
+		// Terminal Circumcircle through MAPLE, CYBER, SONNY
+		// Centre: (-4.512, 145.488) NM  |  Radius: 86.07 NM
+		const TMarc_centreNM = { x: -4.512, y: 145.488 };
+		const TMarc_radiusNM = 86.068;
+
+		let _lastMidX = 0, _lastMidY = 0, _lastScale = 1, _lastW = 0, _lastH = 0;
+
+		function panByPixels(dx, dy) {
+			offsetX -= dx / _lastScale;
+			offsetY += dy / _lastScale;
+			draw();
+		}
+
+		function applyZoomDelta(factor, pivotX, pivotY) {
+			const canvas = document.getElementById('radarcanvas');
+			const wrap = canvas.parentElement;
+			const cx = pivotX !== undefined ? pivotX : wrap.clientWidth / 2;
+			const cy = pivotY !== undefined ? pivotY : wrap.clientHeight / 2;
+			const { toNM } = getDrawTransform();
+			const before = toNM(cx, cy);
+			gridSize = Math.min(Math.max(gridSize / factor, ZOOM_MIN), ZOOM_MAX);
+			document.getElementById('zoomslider').value = gridToSlider(gridSize);
+			document.getElementById('zoomlabel').textContent = fmtNM(gridSize);
+			const { toNM: toNM2 } = getDrawTransform();
+			const after = toNM2(cx, cy);
+			offsetX += after.x - before.x;
+			offsetY += after.y - before.y;
+			draw();
+		}
+
+		/*function togglePanel(id) {
+			const body = document.getElementById('body' + id), btn = document.getElementById('toggleBtn' + id);
+			const open = body.classList.toggle('open');
+			btn.textContent = open ? '▲ Close' : '▼ Open';
+			btn.classList.toggle('open', open);
+		}*/
+		function clamp(v, mn, mx) { return Math.min(mx, Math.max(mn, v)); }
+		function sliderToGrid(s) { return Math.round(ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, s / 100) * 10) / 10; }
+		function gridToSlider(g) { return Math.round(Math.log(g / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN) * 100); }
+		function fmtNM(n) { return n >= 10 ? n.toFixed(0) + ' NM' : n.toFixed(1) + ' NM'; }
+		function syncZoom(sv) { gridSize = sliderToGrid(parseFloat(sv)); document.getElementById('zoomlabel').textContent = fmtNM(gridSize); draw(); }
+		function setGridSize(nm) { gridSize = clamp(nm, ZOOM_MIN, ZOOM_MAX); document.getElementById('zoomslider').value = gridToSlider(gridSize); document.getElementById('zoomlabel').textContent = fmtNM(gridSize); }
+		function syncFromSlider(id) { document.getElementById(id + '_n').value = document.getElementById(id).value; if (id === 'hdga') drawCompass('a'); if (id === 'hdgb') drawCompass('b'); draw(); if (typeof refreshUnifiedPanel === 'function') refreshUnifiedPanel(); }
+		function syncFromNumber(id) {
+			const ni = document.getElementById(id + '_n'), sl = document.getElementById(id);
+			let v = parseFloat(ni.value); if (isNaN(v)) return;
+			v = clamp(v, parseFloat(sl.min), parseFloat(sl.max)); sl.value = v; ni.value = v;
+			if (id === 'hdga') drawCompass('a'); if (id === 'hdgb') drawCompass('b');
+			draw();
+		}
+
+		function setVal(id, v) { const sl = document.getElementById(id); v = clamp(v, parseFloat(sl.min), parseFloat(sl.max)); sl.value = v; document.getElementById(id + '_n').value = v; if (id === 'hdga') drawCompass('a'); if (id === 'hdgb') drawCompass('b'); }
+		function g(id) { return parseFloat(document.getElementById(id).value) || 0; }
+		// ── CPA ENGINE ─────────────────────────────────────────────────────────────
+		function calcCPA(v) {
+			const dx = v.xa - v.xb, dy = v.ya - v.yb, dvx = v.vxa - v.vxb, dvy = v.vya - v.vyb, dv2 = dvx * dvx + dvy * dvy;
+			const cursep = Math.sqrt(dx * dx + dy * dy);
+			if (dv2 < 1e-10) return { dcpa: cursep, tcpamin: 0, tcpah: 0, cursep, diverging: true };
+			const tcpah = -(dx * dvx + dy * dvy) / dv2;
+			const axcpa = v.xa + v.vxa * tcpah, aycpa = v.ya + v.vya * tcpah, bxcpa = v.xb + v.vxb * tcpah, bycpa = v.yb + v.vyb * tcpah;
+			return { dcpa: Math.sqrt((axcpa - bxcpa) ** 2 + (aycpa - bycpa) ** 2), tcpamin: Math.min(tcpah, 60) * 60, tcpah, cursep, diverging: tcpah < 0, axcpa, aycpa, bxcpa, bycpa };
+		}
+		function autoFit() {
+			// Always center at ALDOM (0,0)
+			setGridSize(50);
+			offsetX = 0; offsetY = 0;
+		}
+		// ── SCENARIO GENERATOR ─────────────────────────────────────────────────────
+		function rndInt(mn, mx) { return Math.round(mn + Math.random() * (mx - mn)); }
+		function generateScenario() {
+			for (let i = 0; i < 2000; i++) {
+				const s = {
+					hdga: rndInt(0, 359), gsa: rndInt(280, 550), xa: rndInt(-80, 80), ya: rndInt(-80, 80),
+					hdgb: rndInt(0, 359), gsb: rndInt(280, 550), xb: rndInt(-80, 80), yb: rndInt(-80, 80)
+				};
+				const r = d => d * Math.PI / 180;
+				const v = {
+					xa: s.xa, ya: s.ya, vxa: s.gsa * Math.sin(r(s.hdga)), vya: s.gsa * Math.cos(r(s.hdga)),
+					xb: s.xb, yb: s.yb, vxb: s.gsb * Math.sin(r(s.hdgb)), vyb: s.gsb * Math.cos(r(s.hdgb))
+				};
+				const cpa = calcCPA(v);
+				if (!cpa.diverging && cpa.dcpa < 8 && cpa.tcpah > 0.05 && cpa.tcpah < 60) return s;
+			}
+			return { hdga: 90, gsa: 350, xa: -50, ya: 0, hdgb: 270, gsb: 350, xb: 50, yb: 0 };
+		}
+		function applyScenario(s) { currentScenario = Object.assign({}, s);['hdga', 'gsa', 'xa', 'ya', 'hdgb', 'gsb', 'xb', 'yb'].forEach(id => setVal(id, s[id])); draw(); }
+		function loadRandomScenario() { applyScenario(generateScenario()); }
+		function reloadCurrentScenario() { if (currentScenario) { applyScenario(currentScenario); } }
+
+		// ── DRAWING ─────────────────────────────────────────────────────────────────
+		function drawAircraftIcon(ctx, px, py, headingDeg, color) {
+			ctx.save(); ctx.translate(px, py); ctx.rotate(headingDeg * Math.PI / 180);
+			const s = 6; ctx.fillStyle = color;
+			ctx.beginPath(); ctx.moveTo(0, -s * 1.7); ctx.bezierCurveTo(s * 0.22, -s * 1.5, s * 0.25, s * 0.6, s * 0.18, s * 1.8); ctx.lineTo(0, s * 1.55); ctx.lineTo(-s * 0.18, s * 1.8); ctx.bezierCurveTo(-s * 0.25, s * 0.6, -s * 0.22, -s * 1.5, 0, -s * 1.7); ctx.closePath(); ctx.fill();
+			ctx.beginPath(); ctx.moveTo(-s * 0.22, -s * 0.15); ctx.lineTo(-s * 1.8, s * 0.25); ctx.lineTo(-s * 1.6, s * 0.62); ctx.lineTo(-s * 0.22, s * 0.55); ctx.closePath(); ctx.fill();
+			ctx.beginPath(); ctx.moveTo(s * 0.22, -s * 0.15); ctx.lineTo(s * 1.8, s * 0.25); ctx.lineTo(s * 1.6, s * 0.62); ctx.lineTo(s * 0.22, s * 0.55); ctx.closePath(); ctx.fill();
+			ctx.beginPath(); ctx.moveTo(-s * 0.18, s * 1.25); ctx.lineTo(-s * 0.75, s * 1.58); ctx.lineTo(-s * 0.65, s * 1.78); ctx.lineTo(-s * 0.18, s * 1.55); ctx.closePath(); ctx.fill();
+			ctx.beginPath(); ctx.moveTo(s * 0.18, s * 1.25); ctx.lineTo(s * 0.75, s * 1.58); ctx.lineTo(s * 0.65, s * 1.78); ctx.lineTo(s * 0.18, s * 1.55); ctx.closePath(); ctx.fill();
+			ctx.restore();
+		}
+
+		function pickSide(acPx, acPy, cpaPx, cpaPy, otherAcPx) {
+			const dx = cpaPx - acPx, dy = cpaPy - acPy;
+			if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return acPx <= otherAcPx ? 'left' : 'right';
+			if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? 'left' : 'right';
+			return acPx <= otherAcPx ? 'left' : 'right';
+		}
+
+		// ── Data block: line 3 uses two separate fillText calls with a fixed px gap ───
+		// 5 "units" = 5 × (width of one character 'M' in the font) — measured live each draw.
+		function drawAcData(ctx, px, py, callsign, hdg, gs, side, cpaLabels, fl) {
+			ctx.font = FONT;
+			ctx.textAlign = 'left';
+			ctx.textBaseline = 'top';
+
+			const hdgStr = String(Math.round(hdg)).padStart(3, '0');
+			const gsStr = String(Math.round(gs / 10)).padStart(2, '0');
+
+			const charW = ctx.measureText('0').width;
+			const GAP = charW * 5;
+
+			const hdgW = ctx.measureText(hdgStr).width;
+			const line3W = hdgW + GAP + ctx.measureText(gsStr).width;
+
+			const line1W = ctx.measureText(callsign).width;
+			const line2W = ctx.measureText(fl || 'F---').width;
+
+			let maxW = Math.max(line1W, line2W, line3W);
+			if (cpaLabels && cpaLabels.length) {
+				cpaLabels.forEach(cl => { maxW = Math.max(maxW, ctx.measureText(cl.text).width); });
+			}
+
+			const OFFSET = 16;
+			const blockX = side === 'right' ? px + OFFSET : px - OFFSET - maxW;
+			const blockY = py - LINE_H;
+
+			ctx.fillStyle = '#ffffff';
+			ctx.fillText(callsign, blockX, blockY);
+			ctx.fillText(fl || 'F---', blockX, blockY + LINE_H);
+			ctx.fillText(hdgStr, blockX, blockY + LINE_H * 2);
+			ctx.fillText(gsStr, blockX + hdgW + GAP, blockY + LINE_H * 2);
+
+			if (cpaLabels && cpaLabels.length) {
+				cpaLabels.forEach((cl, i) => {
+					ctx.fillStyle = cl.colour;
+					ctx.fillText(cl.text, blockX, blockY + LINE_H * 4 + i * LINE_H);
+				});
+			}
+
+			ctx.textBaseline = 'alphabetic';
+		}
+
+		function draw() {
+			const canvas = _canvas, wrap = canvas.parentElement;
+			canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight;
+			const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+			const scale = Math.min(W, H) / 8 / gridSize;
+			_lastMidX = 0; _lastMidY = 0; _lastScale = scale; _lastW = W; _lastH = H;
+			const cx = W / 2, cy = H / 2;
+			const S = (nx, ny) => ({ x: cx + (nx - offsetX) * scale, y: cy - (ny - offsetY) * scale });
+			ctx.clearRect(0, 0, W, H);
+			/*ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;*/
+			const o = S(0, 0);
+			ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, H); ctx.stroke();
+			ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(W, o.y); ctx.stroke();
+			drawTMA(ctx, S); drawFIR(ctx, S); drawTRW(ctx, S); drawTRV(ctx, S); drawTRD(ctx, S); drawRedLine(ctx, S); drawAirways(ctx, S); drawWaypoints(ctx, S);
+			const cpaMap = {};
+			aircraft.forEach(a => { cpaMap[a.id] = []; });
+			probes.forEach(probe => {
+				const a = getAcById(probe.ac1), b = getAcById(probe.ac2);
+				if (!a || !b) return;
+				const v = acToVals(a, b);
+				const pcpa = calcCPA(v);
+
+				const isFutureCPA = !pcpa.diverging && pcpa.tcpah > 0;
+
+				const p1 = S(a.x, a.y), p2 = S(b.x, b.y);
+
+				if (isFutureCPA) {
+					// — FUTURE CPA MODE —
+					const paC = S(pcpa.axcpa, pcpa.aycpa);
+					const pbC = S(pcpa.bxcpa, pcpa.bycpa);
+
+					ctx.setLineDash([5, 4]);
+					ctx.strokeStyle = probe.colour;
+					ctx.lineWidth = 1.5;
+					ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(paC.x, paC.y); ctx.stroke();
+					ctx.beginPath(); ctx.moveTo(p2.x, p2.y); ctx.lineTo(pbC.x, pbC.y); ctx.stroke();
+					ctx.setLineDash([]);
+					ctx.lineWidth = 2;
+					ctx.beginPath(); ctx.arc(paC.x, paC.y, 5, 0, 2 * Math.PI); ctx.stroke();
+					ctx.beginPath(); ctx.arc(pbC.x, pbC.y, 5, 0, 2 * Math.PI); ctx.stroke();
+
+					const tsec = Math.max(pcpa.tcpamin * 60, 0);
+					const mm = String(Math.floor(tsec / 60)).padStart(2, '0');
+					const ss = String(Math.floor(tsec % 60)).padStart(2, '0');
+					const lbl = `${pcpa.dcpa.toFixed(1)}NM ${mm}:${ss}`;
+					if (cpaMap[probe.ac1]) cpaMap[probe.ac1].push({ text: lbl, colour: probe.colour, id: probe.id });
+
+				} else {
+					// — CURRENT NEAREST MODE —
+					const dist = Math.hypot(a.x - b.x, a.y - b.y);
+					const lbl = `${dist.toFixed(2)}NM --:--`;
+
+					ctx.setLineDash([5, 4]);
+					ctx.strokeStyle = probe.colour;
+					ctx.lineWidth = 1.5;
+					//ctx.globalAlpha = 0.55;
+					ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+					ctx.setLineDash([]);
+					//ctx.globalAlpha = 1.0;
+
+					if (cpaMap[probe.ac1]) cpaMap[probe.ac1].push({ text: lbl, colour: probe.colour, id: probe.id });
+				}
+			});
+			if (probeMode === 'SELECT_2' && probeBuilding) {
+				const pa = getAcById(probeBuilding.ac1);
+				if (pa) {
+					const p1 = S(pa.x, pa.y); ctx.setLineDash([3, 5]); ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+					ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p1.x - 20, p1.y - 20); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+				}
+			}
+			aircraft.forEach(ac => {
+				const p = S(ac.x, ac.y);
+				drawAircraftIcon(ctx, p.x, p.y, ac.hdg + MAGVAR, '#ffffff');
+				let otherX = W / 2;
+				if (aircraft.length > 1) { const oth = aircraft.filter(o => o.id !== ac.id); otherX = oth.reduce((s, o) => s + S(o.x, o.y).x, 0) / oth.length; }
+				drawAcData(ctx, p.x, p.y, ac.callsign, ac.hdg, ac.gs, p.x <= otherX ? 'left' : 'right', cpaMap[ac.id] || [], ac.fl);
+			});
+		}
+		function drawWaypoints(ctx, S) {
+			WAYPOINTS.forEach(wp => {
+				const p = S(wp.x, wp.y);
+				ctx.save();
+
+				// Dot only
+				ctx.fillStyle = '#6e7681';
+				ctx.beginPath();
+				ctx.arc(p.x, p.y, 1.1, 0, 2 * Math.PI);
+				ctx.fill();
+
+				// Name label (togglable)
+				if (showWpNames && !wp.dotOnly) {
+					ctx.fillStyle = '#6e7681';
+					ctx.font = 'bold 8px monospace';
+					ctx.textAlign = 'center';
+					ctx.textBaseline = 'bottom';
+					ctx.fillText(wp.name, p.x, p.y - 4);
+				}
+				ctx.restore();
+			});
+		}
+		// ── AIRCRAFT ARRAY MODEL ─────────────────────────────────────────────────
+		const MAX_AC = 40;
+		const OPERATORS = ['CCA', 'ACA', 'JYH', 'CPA', 'APG', 'AXM', 'AIC', 'AIQ', 'XAX', 'ANA', 'AAR', 'BKP', 'MXD', 'CAL', 'EVA', 'SJX', 'HGB', 'HKE', 'CRK', 'AHK', 'HKC', 'UAE', 'QTR', 'CLX', 'CES', 'CSN', 'ETH', 'GIA', 'CHH', 'CSZ', 'IGO', 'JJA', 'JAL', 'JJP', 'JNA', 'TWB', 'TTW', 'TGW', 'SIN', 'THA', 'HVN', 'KAL', 'MAS', 'APJ', 'RBA', 'CSH', 'CQH', 'UAL', 'VJC', 'VTI', 'CXA', 'BOX', 'AIH', 'GTI', 'ICV', 'GEC', 'CKS', 'ETD', 'KMI', 'ABD', 'CSS', 'HGO', 'RMY', 'AZG', 'PAC', 'TVR', 'UPS', 'KXP', 'TBJ', 'TAX', 'VJT'];
+		const FL_LIST = (() => { const l = []; for (let f = 120; f <= 450; f += 10) { if (f !== 420 && f !== 440) l.push('F' + f); } return l; })();
+		let aircraft = [], _acIdCtr = 0, selectedAcId = null;
+		function generateCallsign() {
+			const used = new Set(aircraft.map(a => a.callsign));
+			let cs, tries = 0;
+			do {
+				const op = OPERATORS[Math.floor(Math.random() * OPERATORS.length)];
+				// Weighted digit count: 1→2%, 2→10%, 3→65%, 4→23%
+				const r = Math.random() * 100;
+				const len = r < 2 ? 1
+					: r < 12 ? 2
+						: r < 85 ? 3
+							: 4;
+				// First digit: 1–9 (no leading zero)
+				let num = String(Math.floor(Math.random() * 9) + 1);
+				// Remaining digits: 0–9
+				for (let i = 1; i < len; i++) num += Math.floor(Math.random() * 10);
+				cs = op + num;
+				tries++;
+			} while (used.has(cs) && tries < 300);
+			return cs;
+		}
+		function createAircraft(nx, ny) {
+			if (aircraft.length >= MAX_AC) return null;
+			const ac = {
+				id: _acIdCtr++, callsign: generateCallsign(), hdg: rndInt(0, 359), gs: rndInt(280, 550),
+				x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)),
+				fl: FL_LIST[Math.floor(Math.random() * FL_LIST.length)]
+			};
+			aircraft.push(ac); return ac;
+		}
+		function getAcById(id) { return aircraft.find(a => a.id === id) || null; }
+		function removeAcById(id) {
+			const idx = aircraft.findIndex(a => a.id === id); if (idx < 0) return;
+			aircraft.splice(idx, 1);
+			for (let i = probes.length - 1; i >= 0; i--) {
+				if (probes[i].ac1 === id || probes[i].ac2 === id) { recycleColour(probes[i].colour); probes.splice(i, 1); }
+			}
+			if (selectedAcId === id) selectedAcId = aircraft.length ? aircraft[aircraft.length - 1].id : null;
+			refreshPanel(); updateProbeUI(); draw();
+		}
+		function acToVals(a, b) {
+			const r = d => d * Math.PI / 180, tA = a.hdg + MAGVAR, tB = b.hdg + MAGVAR;
+			return {
+				xa: a.x, ya: a.y, vxa: a.gs * Math.sin(r(tA)), vya: a.gs * Math.cos(r(tA)),
+				xb: b.x, yb: b.y, vxb: b.gs * Math.sin(r(tB)), vyb: b.gs * Math.cos(r(tB))
+			};
+		}
+
+		// ── SEP PROBE SYSTEM ─────────────────────────────────────────────────────
+		const PROBE_COLOURS = ['#3fb950', '#f0883e', '#f778ba', '#bc8cff', '#58a6ff'];
+		let colourPool = [...PROBE_COLOURS], probes = [], probeMode = null, probeBuilding = null, _probeIdCtr = 0;
+		function recycleColour(c) { colourPool.push(c); colourPool.sort((a, b) => PROBE_COLOURS.indexOf(a) - PROBE_COLOURS.indexOf(b)); }
+		function toggleSepProbe() {
+			if (probeMode) { if (probeBuilding) { recycleColour(probeBuilding.colour || ''); probeBuilding = null; } probeMode = null; }
+			else { if (aircraft.length < 2) { alert('Need at least 2 aircraft.'); return; } probeMode = 'SELECT_1'; }
+			updateProbeUI(); draw();
+		}
+		function updateProbeUI() {
+			const btn = document.getElementById('sepProbeBtn'), prompt = document.getElementById('probePrompt');
+			if (probeMode === 'SELECT_1') { btn.style.background = '#388bfd'; prompt.textContent = '🖱 Left-click AC1'; }
+			else if (probeMode === 'SELECT_2') { btn.style.background = '#388bfd'; const a = getAcById(probeBuilding.ac1); prompt.innerHTML = '✅ ' + (a ? a.callsign : 'AC1') + ' | Middle-click AC2'; }
+			else { btn.style.background = '#1f6feb'; prompt.textContent = probes.length ? probes.length + ' probe' + (probes.length > 1 ? 's' : '') + ' active' : ''; }
+			_canvas.style.cursor = (probeMode || placeMode || headingMode || addMode) ? 'crosshair' : 'grab';
+		}
+		function findClickedAc(e) {
+			const rect = _canvas.getBoundingClientRect();
+			const px = (e.clientX - rect.left) * (_canvas.width / rect.width), py = (e.clientY - rect.top) * (_canvas.height / rect.height);
+			const { toScreen } = getDrawTransform(); let bestId = null, bestD = 18;
+			aircraft.forEach(ac => { const p = toScreen(ac.x, ac.y), d = Math.hypot(px - p.x, py - p.y); if (d < bestD) { bestD = d; bestId = ac.id; } });
+			return bestId;
+		}
+		function handleProbeLeftClick(e) {
+			if (!probeMode) return false; const id = findClickedAc(e); if (id === null) return true;
+			if (probeMode === 'SELECT_1') { probeBuilding = { ac1: id, colour: null }; probeMode = 'SELECT_2'; }
+			else { probeBuilding.ac1 = id; }
+			updateProbeUI(); draw(); return true;
+		}
+		function handleProbeMiddleClick(e) {
+			if (probeMode !== 'SELECT_2') return false; e.preventDefault();
+			const id = findClickedAc(e);
+			if (id === null) { if (probeBuilding && probeBuilding.colour) recycleColour(probeBuilding.colour); probeBuilding = null; probeMode = null; updateProbeUI(); draw(); return true; }
+			if (id === probeBuilding.ac1) return true;
+			if (probes.length >= 5) { const old = probes.shift(); recycleColour(old.colour); }
+			const colour = colourPool.shift();
+			probes.push({ ac1: probeBuilding.ac1, ac2: id, colour, id: _probeIdCtr++ });
+			probeBuilding = null; probeMode = null; updateProbeUI(); draw(); return true;
+		}
+		function tryRemoveProbeByDataBlockClick(e) {
+			if (!probes.length) return false;
+			const rect = _canvas.getBoundingClientRect();
+			const mx = (e.clientX - rect.left) * (_canvas.width / rect.width), my = (e.clientY - rect.top) * (_canvas.height / rect.height);
+			const { toScreen } = getDrawTransform();
+			for (const ac of aircraft) {
+				const acP = probes.filter(p => p.ac1 === ac.id || p.ac2 === ac.id); if (!acP.length) continue;
+				const p = toScreen(ac.x, ac.y); let otherX = _lastW / 2;
+				if (aircraft.length > 1) { const oth = aircraft.filter(o => o.id !== ac.id); otherX = oth.reduce((s, o) => s + toScreen(o.x, o.y).x, 0) / oth.length; }
+				const side = p.x <= otherX ? 'left' : 'right';
+				acP.forEach((probe, ri) => {
+					const ax = side === 'right' ? p.x + 16 : p.x - 16 - 80, ay = p.y - LINE_H + LINE_H * 4 + ri * LINE_H;
+					if (mx >= ax - 4 && mx <= ax + 160 && Math.abs(my - ay) < LINE_H * 0.7) { recycleColour(probe.colour); probes = probes.filter(pr => pr.id !== probe.id); updateProbeUI(); draw(); }
+				});
+			} return false;
+		}
+		// ── WAYPOINT & AIRWAY DATA ─────────────────────────────────────────────────
+		const WAYPOINTS = [
+			{ name: "72PCA", x: -138.22, y: -316.16, dotOnly: true },
+			{ name: 'ABBEY', x: 31.03, y: 146.03 },
+			{ name: 'ADBIN', x: -87.65, y: 127.93, dotOnly: true },
+			{ name: 'AKOTA', x: 159.88, y: -202.44, dotOnly: true },
+			{ name: 'ALDIS', x: 298.55, y: -74.29, dotOnly: true },
+			{ name: 'ALDOM', x: 0.0, y: 0.0 },
+			{ name: 'ALLEY', x: -33.19, y: 75.03 },
+			{ name: "ANDRE", x: 317.09, y: 114.31, dotOnly: true },
+			{ name: 'ANPOG', x: 202.08, y: 166.09 },
+			{ name: 'APAKA', x: 229.74, y: 241.67, dotOnly: true },
+			{ name: 'ASOBA', x: 11.08, y: -147.79 },
+			{ name: 'ATBUD', x: 13.76, y: -236.13 },
+			{ name: 'AVBEP', x: 93.03, y: 184.76, dotOnly: true },
+			{ name: 'AVMUP', x: 258.76, y: -110.56, dotOnly: true },
+			{ name: 'BEBEM', x: 112.12, y: 186.84 },
+			{ name: 'BEKOL', x: -13.58, y: 162.44 },
+			{ name: 'BESDA', x: 135.75, y: 131.9 },
+			{ name: 'BETTY', x: 10.43, y: 99.02 },
+			{ name: 'BIDIG', x: -35.63, y: 207.69, dotOnly: true },
+			{ name: 'BIGEX', x: -19.41, y: 143.02 },
+			{ name: 'BIGRO', x: -143.77, y: 104.04 },
+			{ name: 'BIMIX', x: 110.49, y: 131.24 },
+			{ name: 'BOKAT', x: -77.55, y: 132.11, dotOnly: true },
+			{ name: 'BOVMA', x: -5.15, y: 239.09, dotOnly: true },
+			{ name: 'BUMDI', x: -3.35, y: 151.5 },
+			{ name: "BUNTA", x: -281.02, y: -180.16, dotOnly: true },
+			{ name: 'CANTO', x: -37.65, y: 108.89 },
+			{ name: 'CARSO', x: 18.99, y: -50.16 },
+			{ name: 'CHALI', x: -43.04, y: 87.59 },
+			{ name: 'COMBI', x: -51.46, y: 99.46 },
+			{ name: 'COMBO', x: 212.23, y: 145.56, dotOnly: true },
+			{ name: 'CONGA', x: 136.08, y: 113.89 },
+			{ name: 'COTON', x: -67.19, y: 79.25 },
+			{ name: 'CYBER', x: 10.1, y: 60.67 },
+			{ name: 'CYRUS', x: 234.66, y: 142.79, dotOnly: true },
+			{ name: 'DABGI', x: 16.87, y: -339.49, dotOnly: true },
+			{ name: 'DADON', x: 204.81, y: 146.42 },
+			{ name: 'DAGBU', x: -125.37, y: 42.81 },
+			{ name: 'DAKTO', x: 45.92, y: 63.36 },
+			{ name: 'DALOL', x: 26.64, y: 114.46 },
+			{ name: 'DALRA', x: 120.11, y: -123.49 },
+			{ name: 'DASON', x: -84.44, y: 73.23 },
+			{ name: 'DONDA', x: -132.76, y: -307.96 },
+			{ name: 'DOSUT', x: -39.17, y: -168.16 },
+			{ name: 'DOTMI', x: 101.27, y: 172.94 },
+			{ name: 'DULOP', x: 9.56, y: -95.96 },
+			{ name: 'DUMEP', x: 47.4, y: 114.45 },
+			{ name: 'DUMOL', x: 4.1, y: -50.16 },
+			{ name: 'EGEMU', x: -118.0, y: -170.16 },
+			{ name: 'ELATO', x: 176.43, y: 149.84 },
+			{ name: 'ENBOK', x: -49.8, y: -76.76 },
+			{ name: 'ENPET', x: 74.28, y: 147.4 },
+			{ name: 'ENROM', x: 103.06, y: 103.39 },
+			{ name: 'ENVAR', x: 176.43, y: 129.34 },
+			{ name: 'EPDOS', x: -46.22, y: -50.16 },
+			{ name: 'EPKAL', x: -80.09, y: -118.66 },
+			{ name: 'EXOTO', x: -187.61, y: -268.66, dotOnly: true },
+			{ name: 'EXTRA', x: 216.81, y: 153.86, dotOnly: true },
+			{ name: 'FISHA', x: 54.33, y: 146.81 },
+			{ name: 'GAMBA', x: -81.68, y: 88.98 },
+			{ name: 'GIVIV', x: -187.31, y: 67.07 },
+			{ name: 'GLN', x: -19.23, y: 172.34, dotOnly: true },
+			{ name: 'GOBBI', x: -47.79, y: 77.98 },
+			{ name: 'HOCKY', x: 11.32, y: 45.67 },
+			{ name: 'IDOSI', x: -105.77, y: -50.16 },
+			{ name: 'IDUMA', x: -23.83, y: 183.62 },
+			{ name: 'IGLEG', x: -109.85, y: -55.9 },
+			{ name: 'IKELA', x: -120.16, y: -70.46 },
+			{ name: 'ISBAN', x: -4.91, y: 59.42 },
+			{ name: 'ISBIG', x: -195.6, y: 48.49 },
+			{ name: 'ISLOM', x: -19.96, y: 207.24, dotOnly: true },
+			{ name: 'JCS', x: 115.01, y: 225.74, dotOnly: true },
+			{ name: "KABAM", x: 310.76, y: 69.84, dotOnly: true },
+			{ name: 'KADLO', x: 235.22, y: 187.14, dotOnly: true },
+			{ name: 'KAPLI', x: 176.43, y: 79.84 },
+			{ name: 'KEVAR', x: -31.83, y: 167.34, dotOnly: true },
+			{ name: 'KIBAS', x: -63.91, y: 138.14, dotOnly: true },
+			{ name: 'LANDA', x: -75.0, y: 106.63 },
+			{ name: 'LAPUG', x: 169.69, y: 189.52 },
+			{ name: 'LARIT', x: 50.48, y: 123.53 },
+			{ name: 'LAXET', x: -21.03, y: 66.12 },
+			{ name: 'LEGOD', x: 29.44, y: 66.37 },
+			{ name: 'LEKEN', x: 30.39, y: 122.86 },
+			{ name: 'LELIM', x: 165.8, y: 186.24 },
+			{ name: 'LENKO', x: -229.94, y: -145.21 },
+			{ name: 'LH', x: -228.05, y: 77.94 },
+			{ name: 'LIMSU', x: 159.15, y: 174.3 },
+			{ name: 'LMN', x: -2.67, y: 228.74, dotOnly: true },
+			{ name: 'MADRU', x: 157.43, y: 79.6 },
+			{ name: 'MAGOG', x: 81.89, y: 147.61 },
+			{ name: 'MALKA', x: 148.87, y: 174.07 },
+			{ name: 'MAPLE', x: -72.17, y: 92.29 },
+			{ name: 'MEBKI', x: 68.16, y: 114.39 },
+			{ name: 'MIGUG', x: -21.11, y: -273.76 },
+			{ name: 'MIKIN', x: 210.85, y: -30.05 },
+			{ name: 'MIPAG', x: -35.69, y: 185.14, dotOnly: true },
+			{ name: "MONBO", x: -53.37, y: -320.16, dotOnly: true },
+			{ name: 'MORTU', x: 0.62, y: -7.54 },
+			{ name: 'MULET', x: -32.52, y: 104.88 },
+			{ name: 'MUMOT', x: 192.79, y: -48.44 },
+			{ name: 'MYWAY', x: -93.42, y: 21.62 },
+			{ name: 'NEDLE', x: 18.36, y: 153.08 },
+			{ name: 'NLG', x: -45.85, y: 161.74 },
+			{ name: 'NOBAD', x: 64.08, y: 24.57 },
+			{ name: 'NOMAN', x: 129.68, y: 9.84 },
+			{ name: 'NOMAR', x: -29.2, y: 220.34, dotOnly: true },
+			{ name: 'NOPER', x: 97.45, y: 60.65 },
+			{ name: 'NUDPI', x: 70.58, y: 124.16 },
+			{ name: 'OLDID', x: 176.43, y: 189.84 },
+			{ name: 'OSUMO', x: 65.94, y: 43.07 },
+			{ name: 'OVGOT', x: 21.22, y: 176.86, dotOnly: true },
+			{ name: 'PECAN', x: -19.14, y: 96.18 },
+			{ name: 'PONTI', x: 5.01, y: 152.12 },
+			{ name: 'POU', x: -66.82, y: 191.14 },
+			{ name: 'POVAM', x: 55.2, y: 84.76 },
+			{ name: 'RAGSO', x: -134.98, y: 55.38 },
+			{ name: 'RECON', x: 227.68, y: 92.69 },
+			{ name: 'RENOT', x: 233.56, y: 163.94, dotOnly: true },
+			{ name: 'ROBIN', x: -5.96, y: 72.59 },
+			{ name: 'ROCCA', x: -44.76, y: 101.77 },
+			{ name: 'RUSBI', x: 74.34, y: 56.8 },
+			{ name: 'SABNO', x: 83.02, y: -51.06 },
+			{ name: 'SAMAS', x: -218.93, y: 40.14 },
+			{ name: 'SAMMI', x: 89.61, y: 157.84 },
+			{ name: 'SANKU', x: 111.22, y: 101.2 },
+			{ name: 'SAPAX', x: -9.07, y: 109.18 },
+			{ name: 'SAREX', x: -50.27, y: 182.74 },
+			{ name: 'SHL', x: -29.57, y: 195.34 },
+			{ name: 'SIERA', x: -46.32, y: 129.04 },
+			{ name: 'SIKOU', x: -162.21, y: 60.44 },
+			{ name: 'SKATE', x: 43.48, y: 101.76 },
+			{ name: 'SMT', x: -22.12, y: 150.10 },
+			{ name: 'SONNY', x: 38.45, y: 70.91 },
+			{ name: 'SOUSA', x: 102.55, y: 131.02 },
+			{ name: 'SUKER', x: 15.76, y: -9.6 },
+			{ name: 'SULUX', x: 58.43, y: 30.75 },
+			{ name: 'SUMDO', x: 85.09, y: 183.88, dotOnly: true },
+			{ name: 'SURFA', x: -92.42, y: -31.31 },
+			{ name: 'SWA', x: 135.04, y: 216.24, dotOnly: true },
+			{ name: 'TAMOT', x: -28.63, y: 151.34 },
+			{ name: 'TAPPO', x: -7.4, y: 89.19 },
+			{ name: 'TEPID', x: -55.82, y: 221.94, dotOnly: true },
+			{ name: "TNN", x: 329.17, y: 197.96, dotOnly: true },
+			{ name: 'TOFEE', x: 51.93, y: -31.79 },
+			{ name: 'TOLAK', x: 176.43, y: 195.31, dotOnly: true },
+			{ name: 'TOMUD', x: -103.1, y: 121.29, dotOnly: true },
+			{ name: 'TUBBY', x: 129.78, y: 160.27 },
+			{ name: 'UNTUL', x: 93.31, y: 28.88 },
+			{ name: 'UPRIK', x: -20.48, y: 219.71, dotOnly: true },
+			{ name: 'VIBOS', x: -59.05, y: 167.31 },
+			{ name: 'VIPAP', x: 8.93, y: 175.53, dotOnly: true },
+			{ name: 'XEMEK', x: 35.07, y: 108.11 },
+			{ name: 'YIN', x: -54.12, y: 261.24, dotOnly: true },
+			{ name: 'ZUH', x: -51.21, y: 143.14 }
+		];
+
+		// ── TMA SOUTHERN BOUNDARY ────────────────────────────────────────────────────
+		const TMA_SOUTH = [
+			[81.42, -54.16],  // 185600N 1154900E
+			[-105.77, -50.16],  // 190000N 1122500E
+			[-162.21, -20.16],  // 193000N 1113000E
+		];
+
+		function drawTMA(ctx, S) {
+			if (TMA_SOUTH.length < 2) return;
+			ctx.save();
+			ctx.strokeStyle = '#555555';
+			ctx.lineWidth = 1.5;
+			ctx.globalAlpha = 0.6;
+			ctx.setLineDash([6, 4]);
+			ctx.beginPath();
+			const p0 = S(TMA_SOUTH[0][0], TMA_SOUTH[0][1]);
+			ctx.moveTo(p0.x, p0.y);
+			for (let i = 1; i < TMA_SOUTH.length; i++) {
+				const p = S(TMA_SOUTH[i][0], TMA_SOUTH[i][1]);
+				ctx.lineTo(p.x, p.y);
+			}
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		// ── FIR BOUNDARY ─────────────────────────────────────────────────────────────
+		const FIR_BOUNDARY = [
+			[176.43, 189.84],  // 230000N 1173000E  NE corner
+			[176.43, 69.84],  // 21°00'N 117°30'E  East side
+			[-21.11, -190.14],  // 16°40'N 114°00'E  South tip
+			[-162.21, -20.16],  // 19°30'N 111°30'E  SW corner
+			[-162.21, 75.84],  // 210600N 1113000E  West side — N boundary begins
+			[-75.00, 106.63],  // LANDA
+			[-52.25, 121.64],  // 215148N 1132654E
+			[-40.24, 136.59],  // 220645N 1133940E
+			[-37.76, 138.51],  // 220840N 1134218E
+			[-39.84, 143.59],  // 221345N 1134005E
+			[-30.70, 154.48],  // 222438N 1134948E
+			[0.81, 165.76],  // 223555N 1142318E
+			[5.43, 161.34],  // 223130N 1142813E
+			[7.11, 154.16],  // 222419N 1143000E
+			[21.76, 160],  // 222711N 1144723E
+			[84.54, 161.95],  // 223048N 1155219E
+			[96.32, 175.84],  // 224600N 1160450E
+			[101.27, 172.94],  // DOTMI
+			[165.80, 186.24],  // LELIM
+			[176.43, 189.84],  // close loop
+		];
+		const TRW_BOUNDARY = [
+			[-39.45, 66.85],	// arcend in drawTRW()
+			[-64.65, 25.85],
+			[-74.65, 25.75],
+			[-90, -8],
+			[-162.21, -20.16],
+			[-162.21, 75.84],
+			[-75.00, 106.63],
+			[-52.25, 121.64],
+			[-40.24, 136.59],
+			[-37.76, 138.51],
+			[-39.84, 143.59],
+			[-30.70, 154.48],
+			[0.81, 165.76],
+			[5.43, 161.34],
+			[7.11, 154.16],
+			[17.87, 158.41],
+			[19.01, 112.28],
+			[-0.5, 111],
+			[6.6, 60.15]	// arcstart in drawTRW()
+		]
+		const TRV_BOUNDARY = [
+			[-9.11, 59.54],	// ref to arc TRW, arcstart in drawTRV()
+			[-12.85, 9.54],
+			[-21.12, -0.2],
+			[-21.32, -50.16],
+			[-60.54, -50.15],
+			[-99.86, -95.24],
+			[-162.21, -20.16],	// TRW Point
+			[-90, -8],	// TRW Point
+			[-74.65, 25.75],	// TRW Point
+			[-64.65, 25.85],	// TRW Point
+			[-39.45, 66.85]	// ref to arc TRW, arcend in drawTRV()
+		]
+		const TRD_BOUNDARY = [
+			[-21.32, -50.16],	// TRV Point
+			[57.91, -50.83],
+			[65.78, -75.78],
+			[-21.11, -190.14],	// 16°40'N 114°00'E  South tip
+			[-99.86, -95.24],	// TRV Point
+			[-60.54, -50.15],
+			[-21.32, -50.16]	// TRV Point
+		]
+		const TRS_BOUNDARY = [
+			[19.01, 112.28],
+			[-0.5, 111],
+			[6.6, 60.15]	// arcend in drawTRW() 
+		]
+
+		function drawFIR(ctx, S) {
+			if (FIR_BOUNDARY.length < 2) return;
+			ctx.save();
+			ctx.strokeStyle = '#555555';
+			ctx.lineWidth = 1.5;
+			ctx.globalAlpha = 0.6;
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			const p0 = S(FIR_BOUNDARY[0][0], FIR_BOUNDARY[0][1]);
+			ctx.moveTo(p0.x, p0.y);
+			for (let i = 1; i < FIR_BOUNDARY.length; i++) {
+				const p = S(FIR_BOUNDARY[i][0], FIR_BOUNDARY[i][1]);
+				ctx.lineTo(p.x, p.y);
+			}
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		function drawTRW(ctx, S) {
+			if (TRW_BOUNDARY.length < 2) return;
+			ctx.save();
+			ctx.strokeStyle = '#999999'
+			if (mapVisibility['TRW']) { ctx.lineWidth = 1; }
+			else { ctx.lineWidth = 0.5; }
+			// straight line
+			ctx.beginPath();
+			const p0 = S(TRW_BOUNDARY[0][0], TRW_BOUNDARY[0][1]);
+			ctx.moveTo(p0.x, p0.y);
+			for (let i = 1; i < TRW_BOUNDARY.length; i++) {
+				const p = S(TRW_BOUNDARY[i][0], TRW_BOUNDARY[i][1]);
+				ctx.lineTo(p.x, p.y);
+			}
+			ctx.stroke();
+			// arc
+			ctx.beginPath();
+			// Centre in screen pixels
+			const c = S(TMarc_centreNM.x, TMarc_centreNM.y);
+			// Radius in pixels — use two screen points to derive scale
+			const arc_p0 = S(0, 0);
+			const arc_p1 = S(1, 0);
+			const pxPerNM = Math.hypot(arc_p1.x - arc_p0.x, arc_p1.y - arc_p0.y);
+			const rPx = TMarc_radiusNM * pxPerNM;
+			// Arc points
+			const arcstart = Math.atan2(-(60.15 - TMarc_centreNM.y), 6.6 - TMarc_centreNM.x)	// ref to TRW point
+			const arcend = Math.atan2(-(66.85 - TMarc_centreNM.y), -39.45 - TMarc_centreNM.x)	// ref to TRW point
+			ctx.arc(c.x, c.y, rPx, arcstart, arcend, false);
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		function drawTRV(ctx, S) {
+			if (TRV_BOUNDARY.length < 2) return;
+			ctx.save();
+			ctx.strokeStyle = '#999999';
+			if (mapVisibility['TRV']) { ctx.lineWidth = 1; }
+			else { ctx.lineWidth = 0.5; }
+			// straight line
+			ctx.beginPath();
+			const p0 = S(TRV_BOUNDARY[0][0], TRV_BOUNDARY[0][1]);
+			ctx.moveTo(p0.x, p0.y);
+			for (let i = 1; i < TRV_BOUNDARY.length; i++) {
+				const p = S(TRV_BOUNDARY[i][0], TRV_BOUNDARY[i][1]);
+				ctx.lineTo(p.x, p.y);
+			}
+			ctx.stroke();
+			// arc
+			ctx.beginPath();
+			// Centre in screen pixels
+			const c = S(TMarc_centreNM.x, TMarc_centreNM.y);
+			// Radius in pixels — use two screen points to derive scale
+			const arc_p0 = S(0, 0);
+			const arc_p1 = S(1, 0);
+			const pxPerNM = Math.hypot(arc_p1.x - arc_p0.x, arc_p1.y - arc_p0.y);
+			const rPx = TMarc_radiusNM * pxPerNM;
+			// Arc points
+			const arcstart = Math.atan2(-(59.54 - TMarc_centreNM.y), -9.11 - TMarc_centreNM.x)	// ref to TRV point
+			const arcend = Math.atan2(-(66.85 - TMarc_centreNM.y), -39.45 - TMarc_centreNM.x)	// ref to TRV point
+			ctx.arc(c.x, c.y, rPx, arcstart, arcend, false);
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		function drawTRD(ctx, S) {
+			if (TRD_BOUNDARY.length < 2) return;
+			ctx.save();
+			ctx.strokeStyle = '#999999';
+			if (mapVisibility['TRD']) { ctx.lineWidth = 1; }
+			else { ctx.lineWidth = 0.5; }
+			ctx.beginPath();
+			const p0 = S(TRD_BOUNDARY[0][0], TRD_BOUNDARY[0][1]);
+			ctx.moveTo(p0.x, p0.y);
+			for (let i = 1; i < TRD_BOUNDARY.length; i++) {
+				const p = S(TRD_BOUNDARY[i][0], TRD_BOUNDARY[i][1]);
+				ctx.lineTo(p.x, p.y);
+			}
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		const mapVisibility = { TRW: true, TRV: true, TRD: true };
+		function toggleMap(group) {
+			mapVisibility[group] = !mapVisibility[group];
+			const btn = document.getElementById('btn-map-' + group);
+			btn.classList.toggle('place-active', mapVisibility[group]);
+			btn.classList.toggle('map-btn-off', !mapVisibility[group]);
+			draw();
+		}
+
+		// ── AIRWAYS ───────────────────────────────────────────────────────────────────
+		const AIRWAYS = [
+			// Magenta lines (OVF)
+			// ZGGG
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'ALLEY', 'DAGBU', 'SIKOU'] },	// ZGGG-SI
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'ALLEY', 'SURFA', 'IDOSI', 'IKELA'] },	// ZGGG-IK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'ALLEY', 'EPDOS', 'ENBOK', 'EPKAL'] },	// ZGGG-EK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'SKATE', 'POVAM', 'RUSBI', 'UNTUL', 'SABNO'] },	// ZGGG-SN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'SKATE', 'NOPER', 'NOMAN'] },	// ZGGG-NN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'SKATE', 'CONGA', 'ENVAR'] },	// ZGGG-EN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'MULET', 'SKATE', 'CONGA', 'ELATO'] },	// ZGGG-EL
+			// ZGSZ
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'ALLEY', 'DAGBU', 'SIKOU'] },	// ZGSZ-SI
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'ALLEY', 'SURFA', 'IDOSI', 'IKELA'] },	// ZGSZ-IK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'ALLEY', 'EPDOS', 'ENBOK', 'EPKAL'] },	// ZGSZ-EK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'SKATE', 'POVAM', 'RUSBI', 'UNTUL', 'SABNO'] },	// ZGSZ-SN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'SKATE', 'NOPER', 'NOMAN'] },	// ZGSZ-NN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'SKATE', 'CONGA', 'ENVAR'] },	// ZGSZ-EN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIERA', 'ROCCA', 'SKATE', 'CONGA', 'ELATO'] },	// ZGSZ-EL
+			// SI
+			{ color: '#ff66cc', group: 'OVF', waypoints: ['SIKOU', 'DAGBU', 'IDOSI', 'IKELA'] },	// SI-IK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU', 'DAGBU', 'EPDOS', 'ENBOK', 'EPKAL'] },	// SI-EK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI', 'POVAM', 'RUSBI', 'UNTUL', 'SABNO'] },	// SI-SN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI', 'POVAM', 'NOPER', 'NOMAN'] },	// SI-NN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI', 'KAPLI'] },	// SI-KA
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI', 'BEKOL'] },	// SI-BK
+			// IK
+			{ color: '#ff66cc', group: 'OVF', waypoints: ['IKELA', 'IDOSI', 'DAGBU', 'SIKOU'] },	// IK-SI
+			{ color: '#ff66cc', group: 'OVF', waypoints: ['IKELA', 'MORTU', 'NOBAD', 'KAPLI'] },	// IK-KA
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA', 'MORTU', 'NOBAD', 'ENVAR'] },	// IK-EN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA', 'MORTU', 'NOBAD', 'ELATO'] },	// IK-EL
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA', 'MORTU', 'NOBAD', 'SANKU', 'BIMIX', 'DOTMI'] },	// IK-DT
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['IKELA', 'IDOSI', 'BIGEX', 'BEKOL'] },	// IK-BK
+			// DS
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOSUT', 'DULOP', 'DUMOL', 'DAGBU', 'SIKOU'] },	// DS-SI
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOSUT', 'DULOP', 'CARSO', 'NOBAD', 'SANKU', 'BIMIX', 'DOTMI'] },	// DS-DT
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOSUT', 'DULOP', 'DUMOL', 'MORTU', 'ALDOM', 'ISBAN', 'ROBIN', 'TAPPO', 'SAPAX', 'BEKOL'] },	// DS-BK
+			// SB
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['ASOBA', 'DULOP', 'CARSO', 'NOBAD', 'SANKU', 'BIMIX', 'DOTMI'] },	// SB-DT
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['ASOBA', 'DULOP', 'DUMOL', 'MORTU', 'ALDOM', 'ISBAN', 'ROBIN', 'TAPPO', 'SAPAX', 'BEKOL'] },	// SB-BK
+			// SN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SABNO', 'SIKOU'] },	// SN-SI
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['SABNO', 'LEGOD', 'BEKOL'] },	// SN-BK
+			// NN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['NOMAN', 'SANKU', 'BIMIX', 'DOTMI'] },	// NN-DT
+			// KA
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['KAPLI', 'ALLEY', 'DAGBU', 'SIKOU'] },	// KA-SI
+			{ color: '#ff66cc', group: 'OVF', waypoints: ['KAPLI', 'MADRU', 'SULUX', 'IGLEG', 'IKELA'] },	// KA-IK
+			// EL
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['ELATO', 'MAGOG', 'DOTMI'] },	//EL-DT
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['ELATO', 'TUBBY', 'SAMMI', 'NEDLE', 'PONTI', 'BEKOL'] },	// EL-BK
+			// DT
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'ENROM', 'ALLEY', 'DAGBU', 'SIKOU'] },	// DT-SI
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'ENROM', 'RUSBI', 'SULUX', 'IGLEG', 'IKELA'] },	// DT-IK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'ENROM', 'RUSBI', 'SULUX', 'EPKAL'] },	// DT-EK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'ENROM', 'NOPER', 'UNTUL', 'SABNO'] },	// DT-SN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'ENROM', 'NOMAN'] },	// DT-NN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'SOUSA', 'CONGA', 'ENVAR'] },	// DT-EN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['DOTMI', 'SOUSA', 'CONGA', 'ELATO'] },	// DT-EL
+			// TM
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'ALLEY', 'DAGBU', 'SIKOU'] },	// TM-SI
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'ALLEY', 'SURFA', 'IDOSI', 'IKELA'] },	// TM-IK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'ALLEY', 'EPDOS', 'ENBOK', 'EPKAL'] }, 	// TM-EK
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'BIGEX', 'POVAM', 'RUSBI', 'UNTUL', 'SABNO'] },	// TM-SN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'BIGEX', 'POVAM', 'NOPER', 'NOMAN'] },	// TM-NN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'BIGEX', 'DALOL', 'DUMEP', 'MEBKI', 'CONGA', 'ENVAR'] },	//TM-EN
+			{ color: '#ff66cc', group: 'OVF_OTHER', dashed: true, waypoints: ['TAMOT', 'DALOL', 'DUMEP', 'MEBKI', 'CONGA', 'ELATO'] },	// TM-EL
+			// Cyan lines (INBOUND)
+			// VHHH
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO'] },	// SI V571 VHHH
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['IKELA', 'IDOSI', 'MYWAY', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO'] },	// IK V561 VHHH
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['DOSUT', 'DULOP', 'CARSO'] },	// M771 Q1 PORTION VHHH
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['ASOBA', 'DULOP', 'CARSO'] },	// M772 Q1 PORTION VHHH
+			{ color: '#00e5ff', group: 'TRS', waypoints: ['CARSO', 'SUKER', 'HOCKY', 'CYBER', 'BETTY'] },	// V551 VHHH
+			{ color: '#00e5ff', group: 'TRS', waypoints: ['SABNO', 'TOFEE', 'SUKER', 'HOCKY', 'CYBER', 'BETTY'] },	// V542 VHHH
+			{ color: '#00e5ff', group: 'TRS', waypoints: ['NOMAN', 'UNTUL', 'OSUMO', 'DAKTO', 'SONNY', 'BETTY'] },	// V533 VHHH
+			{ color: '#00e5ff', group: 'TRE', waypoints: ['ELATO', 'MAGOG', 'ENPET', 'FISHA', 'ABBEY'] },	// V522 VHHH
+			{ color: '#00e5ff', group: 'TRE', waypoints: ['LELIM', 'MALKA', 'MAGOG', 'ENPET', 'FISHA', 'ABBEY'] },	// V591 VHHH
+			{ color: '#00e5ff', group: 'TRE', waypoints: ['DOTMI', 'MAGOG', 'ENPET', 'FISHA', 'ABBEY'] },	// V512 VHHH
+			// VMMC
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI'] },	// SI-VMMC
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['IKELA', 'IDOSI', 'DASON', 'COTON', 'CHALI'] },	// IK-VMMC
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['DOSUT', 'DULOP', 'DUMOL'] },	// M771 PORTION DS-VMMC
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['ASOBA', 'DULOP', 'DUMOL'] },	// M772 M771 PORTION SB-VMMC
+			{ color: '#00e5ff', group: 'TRS', waypoints: ['DUMOL', 'MORTU', 'ALDOM', 'ISBAN'] },	// J103 PORTION DS/SB-VMMC
+			{ color: '#00e5ff', group: 'TRW', waypoints: ['ISBAN', 'ROBIN', 'CHALI'] },	// DS/SB-VMMC
+			{ color: '#00e5ff', group: 'TRS', waypoints: ['SABNO', 'TOFEE', 'SUKER', 'ALDOM', 'ISBAN',] },	// SN-VMMC
+			{ color: '#00e5ff', group: 'TRE', waypoints: ['ELATO', 'TUBBY', 'SAMMI', 'NEDLE', 'PONTI', 'BUMDI', 'SMT'] },	// J101 EL-VMMC
+			{ color: '#00e5ff', group: 'TRE', waypoints: ['DOTMI', 'SAMMI', 'NEDLE', 'PONTI', 'BUMDI', 'SMT'] },	// DT-VMMC
+			// Yellow lines (OUTBOUND)
+			// VHHH
+			{ color: '#ffea00', group: 'TRW', waypoints: ['PECAN', 'ALLEY', 'DAGBU', 'SIKOU'] },	// V10
+			{ color: '#ffea00', group: 'TRW', waypoints: ['PECAN', 'LAXET', 'SURFA', 'IDOSI', 'IKELA'] },	// V11 A1/P901
+			{ color: '#ffea00', group: 'TRW', waypoints: ['PECAN', 'LAXET', 'EPDOS', 'ENBOK', 'EPKAL'] },	// V12 L642
+			{ color: '#ffea00', group: 'TRS', waypoints: ['DALOL', 'XEMEK', 'SKATE', 'POVAM', 'RUSBI', 'UNTUL', 'SABNO'] },	// V652
+			{ color: '#ffea00', group: 'TRS', waypoints: ['DALOL', 'XEMEK', 'SKATE', 'NOPER', 'NOMAN'] },	// V642
+			{ color: '#ffea00', group: 'TRS', waypoints: ['DALOL', 'XEMEK', 'SKATE', 'KAPLI'] },	// V642 KA
+			{ color: '#ffea00', group: 'TRE', waypoints: ['DALOL', 'DUMEP', 'MEBKI', 'CONGA', 'ENVAR'] },	// V631
+			{ color: '#ffea00', group: 'TRE', waypoints: ['DALOL', 'DUMEP', 'MEBKI', 'CONGA', 'ELATO'] },	// V621
+			{ color: '#ffea00', group: 'TRE', waypoints: ['LEKEN', 'LARIT', 'NUDPI', 'SOUSA', 'BESDA', 'LIMSU', 'LELIM'] },	// V611
+			{ color: '#ffea00', group: 'TRE', waypoints: ['LEKEN', 'LARIT', 'NUDPI', 'SOUSA', 'DOTMI'] },	// V601
+			// VMMC
+			{ color: '#ffea00', group: 'TRW', waypoints: ['ALLEY', 'DAGBU', 'SIKOU'] },	// VMMC-SI
+			{ color: '#ffea00', group: 'TRW', waypoints: ['ALLEY', 'SURFA', 'IDOSI', 'IKELA'] },	// VMMC-IK V31 A1/P901
+			{ color: '#ffea00', group: 'TRW', waypoints: ['ALLEY', 'EPDOS', 'ENBOK', 'EPKAL'] },	// VMMC-EK V32 L642
+			{ color: '#ffea00', group: 'TRS', waypoints: ['SKATE', 'POVAM', 'RUSBI', 'UNTUL', 'SABNO'] },	// VMMC-SN
+			{ color: '#ffea00', group: 'TRS', waypoints: ['SKATE', 'NOPER', 'NOMAN'] },	// VMMC-NN
+			{ color: '#ffea00', group: 'TRS', waypoints: ['SKATE', 'KAPLI'] },	// VMMC-KA
+			{ color: '#ffea00', group: 'TRE', waypoints: ['CONGA', 'ENVAR'] },	// VMMC-EN
+			{ color: '#ffea00', group: 'TRE', waypoints: ['CONGA', 'ELATO'] },	// VMMC-EL
+			{ color: '#ffea00', group: 'TRE', waypoints: ['NUDPI', 'SOUSA', 'BESDA', 'LIMSU', 'LELIM'] },	// VMMC-LL
+			{ color: '#ffea00', group: 'TRE', waypoints: ['NUDPI', 'SOUSA', 'DOTMI'] },	// VMMC-DT
+
+			// EXTERNAL ROUTE
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'GIVIV', 'LH'] },	// A202
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'ISBIG', 'SAMAS'] },	// R339
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['IKELA', 'LENKO', 'BUNTA'] },	// A1(W)
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['EPKAL', 'EGEMU', 'EXOTO'] },	// L642
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['72PCA', 'DONDA', 'DOSUT'] },	// M771
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['DABGI', 'ATBUD', 'ASOBA'] },	// M772
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['SABNO', 'DALRA', 'AKOTA'] },	// A583
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['NOMAN', 'MUMOT', 'AVMUP'] },	// A461
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['NOMAN', 'MIKIN', 'ALDIS'] },	// M501
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['KAPLI', 'RECON', 'ANDRE'] },	// G86
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['ENVAR', 'DADON', 'EXTRA', 'RENOT'] },	// M750
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['KADLO', 'ANPOG', 'ELATO'] },	// A1(E)
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['CYRUS', 'COMBO', 'DADON', 'ELATO'] },	// G581
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['LELIM', 'LAPUG', 'TOLAK', 'APAKA'] },	// M503
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['DOTMI', 'BEBEM', 'SWA'] },	// A470
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['SHL', 'ISLOM', 'LMN'] },	// G471
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['SHL', 'UPRIK', 'BOVMA'] },	// W26
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['BEKOL', 'IDUMA', 'SHL', 'YIN'] },	// A461
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['SHL', 'TEPID'] },	// W22
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['POU', 'TAMOT'] },	// B330
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['TAMOT', 'IDUMA'] },	// W68
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['NOMAR', 'NLG', 'TAMOT'] },	// W18
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['POU', 'VIBOS', 'ZUH', 'SIERA'] },	// R473
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['KABAM', 'MIKIN', 'MUMOT', 'DALRA', 'ATBUD', 'MIGUG', 'MONBO'] },	// N892
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['KAPLI', 'TNN'] },	// J1
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['KADLO', 'EXTRA', 'COMBO', 'KAPLI'] },	// T1
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['DADON', 'KADLO'] },	// L1
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['CYRUS', 'EXTRA', 'ANPOG', 'OLDID', 'LAPUG', 'BEBEM', 'AVBEP', 'SUMDO', 'OVGOT', 'VIPAP', 'GLN', 'ZUH', 'KIBAS', 'BOKAT', 'ADBIN', 'TOMUD', 'BIGRO', 'LH'] },	// R200
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['BIGRO', 'GIVIV', 'SAMAS'] },	// R221
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['DOTMI', 'JCS'] },	// V35
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['GLN', 'MIPAG', 'BIDIG', 'TEPID'] },	// W21
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['ISLOM', 'UPRIK'] },	// W41
+			{ color: '#888888', group: 'EX_RTE', waypoints: ['POU', 'SAREX', 'ZUH'] }	// W7
+		];
+
+		const routeVisibility = { TRE: true, TRS: true, TRW: true, OVF: true, OVF_OTHER: false, EX_RTE: true };
+		function toggleRoute(group) {
+			routeVisibility[group] = !routeVisibility[group];
+			const btn = document.getElementById('btn-route-' + group);
+			btn.classList.toggle('place-active', routeVisibility[group]);
+			btn.classList.toggle('route-btn-off', !routeVisibility[group]);
+			draw();
+		}
+
+		// Colour priority: cyan > yellow > magenta
+		const COLOR_PRIORITY = ['#00e5ff', '#ffea00', '#ff66cc'];
+
+		const RED_LINE = [
+			[-190.36, 21.11],
+			[-148.22, 30.74],
+			[-139.51, -7.99],
+			[-181.52, -17.61],
+			[-190.36, 21.11],
+		];
+		function drawRedLine(ctx, S) {
+			if (RED_LINE.length < 2) return;
+			ctx.save(); ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+			ctx.beginPath();
+			const p0 = S(RED_LINE[0][0], RED_LINE[0][1]); ctx.moveTo(p0.x, p0.y);
+			for (let i = 1; i < RED_LINE.length; i++) { const p = S(RED_LINE[i][0], RED_LINE[i][1]); ctx.lineTo(p.x, p.y); }
+			ctx.stroke();
+			// Label at center, rotated to align with northern edge, scales with zoom
+			const ctr = S(-164.9025, 6.5625);
+			const dx = S(RED_LINE[3][0], RED_LINE[3][1]).x - S(RED_LINE[0][0], RED_LINE[0][1]).x;
+			const dy = S(RED_LINE[3][0], RED_LINE[3][1]).y - S(RED_LINE[0][0], RED_LINE[0][1]).y;
+			const angle = Math.atan2(dy, dx);
+			const fontSize = Math.max(4, 5 * _lastScale);
+			ctx.save();
+			ctx.translate(ctr.x, ctr.y);
+			ctx.rotate(angle - Math.PI / 2);
+			ctx.font = `${fontSize}px "Segoe UI",sans-serif`;
+			ctx.fillStyle = '#FF0000';
+			ctx.globalAlpha = 0.5;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText('ZJ(D)208', 0, 0);
+			ctx.restore();
+			ctx.restore();
+		}
+
+		function drawAirways(ctx, S) {
+			// Step 1: build segment map keyed by canonical "WP1|WP2"
+			const segMap = new Map();
+			AIRWAYS.forEach(airway => {
+				for (let i = 0; i < airway.waypoints.length - 1; i++) {
+					const a = airway.waypoints[i], b = airway.waypoints[i + 1];
+					const key = a < b ? a + '|' + b : b + '|' + a;
+					if (!segMap.has(key)) segMap.set(key, []);
+					segMap.get(key).push(airway);
+				}
+			});
+
+			// Step 2: for each unique segment, resolve winning airway
+			segMap.forEach((claimants, key) => {
+				// Filter to visible groups only
+				const visible = claimants.filter(aw => routeVisibility[aw.group]);
+				if (visible.length === 0) return;
+
+				// Pick highest priority colour among visible claimants
+				let winner = null;
+				for (const col of COLOR_PRIORITY) {
+					const match = visible.find(aw => aw.color === col);
+					if (match) { winner = match; break; }
+				}
+				if (!winner) winner = visible[0];
+
+				// Step 3: get actual waypoint coords (original order from winner)
+				const [wa, wb] = key.split('|');
+				// Find original order from winner's waypoints
+				const idxA = winner.waypoints.indexOf(wa);
+				const idxB = winner.waypoints.indexOf(wb);
+				const nameA = idxA < idxB ? wa : wb;
+				const nameB = idxA < idxB ? wb : wa;
+				const wpA = WAYPOINTS.find(w => w.name === nameA);
+				const wpB = WAYPOINTS.find(w => w.name === nameB);
+				if (!wpA || !wpB) return;
+
+				const pA = S(wpA.x, wpA.y), pB = S(wpB.x, wpB.y);
+
+				// Step 4: draw once
+				ctx.save();
+				ctx.strokeStyle = winner.color;
+				ctx.lineWidth = winner.group === 'EX_RTE' ? 1 : (winner.lineWidth || 1);
+				ctx.globalAlpha = winner.group === 'EX_RTE' ? 0.5 : (winner.color === '#00e5ff' || winner.color === '#ffea00') ? 0.25 : 0.4;
+				ctx.setLineDash(winner.dashed ? [6, 4] : []);
+				ctx.beginPath();
+				ctx.moveTo(pA.x, pA.y);
+				ctx.lineTo(pB.x, pB.y);
+				ctx.stroke();
+				ctx.restore();
+			});
+		}
+
+		// ── INTERACTION / PLACEMENT ──────────────────────────────────────────────
+		let placeMode = null, headingMode = null, addMode = false;
+		function getDrawTransform() {
+			const cx = _lastW / 2, cy = _lastH / 2, scale = _lastScale;
+			const toScreen = (nx, ny) => ({ x: cx + (nx - offsetX) * scale, y: cy - (ny - offsetY) * scale });
+			const toNM = (px, py) => ({ x: (px - cx) / scale + offsetX, y: -(py - cy) / scale + offsetY });
+			return { scale, toScreen, toNM };
+		}
+		function canvasClickPlace(e) {
+			if (!placeMode && !headingMode && !addMode) return;
+			const rect = _canvas.getBoundingClientRect();
+			const px = (e.clientX - rect.left) * (_canvas.width / rect.width), py = (e.clientY - rect.top) * (_canvas.height / rect.height);
+			const { toScreen, toNM } = getDrawTransform();
+			let { x: nx, y: ny } = toNM(px, py);
+			let snapD = Infinity, snapWP = null;
+			WAYPOINTS.forEach(wp => { const sp = toScreen(wp.x, wp.y), d = Math.hypot(px - sp.x, py - sp.y); if (d < 20 && d < snapD) { snapD = d; snapWP = wp; } });
+			if (snapWP) { nx = snapWP.x; ny = snapWP.y; }
+			if (addMode) {
+				const ac = createAircraft(nx, ny);
+				if (ac) { selectedAcId = ac.id; addMode = false; updateAddBtn(); updateWpBtns(); _canvas.style.cursor = 'grab'; refreshPanel(); draw(); }
+				return;
+			}
+			const ac = getAcById(selectedAcId); if (!ac) return;
+			if (headingMode === 'SEL') {
+				const dx = nx - ac.x, dy = ny - ac.y; let hdg = Math.atan2(dx, dy) * 180 / Math.PI;
+				if (hdg < 0) hdg += 360; hdg = Math.round(hdg) - MAGVAR; if (hdg < 0) hdg += 360; if (hdg >= 360) hdg -= 360;
+				ac.hdg = hdg; headingMode = null; updateHeadingBtns(); updateWpBtns(); _canvas.style.cursor = 'grab'; refreshPanelFields(); draw(); return;
+			}
+			if (placeMode === 'SEL') {
+				ac.x = parseFloat(nx.toFixed(2)); ac.y = parseFloat(ny.toFixed(2));
+				placeMode = null; updatePlaceBtns(); updateWpBtns(); _canvas.style.cursor = 'grab'; refreshPanelFields(); draw();
+			}
+		}
+		function placeAtWaypoint(name) {
+			const wp = WAYPOINTS.find(w => w.name === name); if (!wp) return;
+			if (headingMode === 'SEL') {
+				const ac = getAcById(selectedAcId); if (!ac) return;
+				const dx = wp.x - ac.x, dy = wp.y - ac.y; let hdg = Math.atan2(dx, dy) * 180 / Math.PI;
+				if (hdg < 0) hdg += 360; hdg = Math.round(hdg) - MAGVAR; if (hdg < 0) hdg += 360; if (hdg >= 360) hdg -= 360;
+				ac.hdg = hdg; headingMode = null; updateHeadingBtns(); updateWpBtns(); refreshPanelFields(); draw(); return;
+			}
+			if (addMode) {
+				const ac = createAircraft(wp.x, wp.y);
+				if (ac) {
+					selectedAcId = ac.id;
+					addMode = false;
+					updateAddBtn();
+					updateWpBtns();
+					canvas.style.cursor = 'grab';
+					refreshPanel();
+					draw();
+				}
+				return;
+			}
+			if (!placeMode) return;
+			const ac = getAcById(selectedAcId); if (!ac) return;
+			ac.x = wp.x; ac.y = wp.y; placeMode = null; updatePlaceBtns(); updateWpBtns(); _canvas.style.cursor = 'grab'; refreshPanelFields(); draw();
+		}
+		function setPlaceMode(m) { placeMode = (placeMode === m) ? null : m; if (placeMode) { headingMode = null; addMode = false; updateHeadingBtns(); updateAddBtn(); } updatePlaceBtns(); updateWpBtns(); _canvas.style.cursor = placeMode ? 'crosshair' : 'grab'; }
+		function setHeadingMode(m) { headingMode = (headingMode === m) ? null : m; if (headingMode) { placeMode = null; addMode = false; updatePlaceBtns(); updateAddBtn(); } updateHeadingBtns(); updateWpBtns(); _canvas.style.cursor = headingMode ? 'crosshair' : 'grab'; }
+		function updatePlaceBtns() { const hasAc = aircraft.length > 0; const b = document.getElementById('placeBtnSel'); if (!b) return; b.disabled = !hasAc; b.style.opacity = hasAc ? '1' : '0.35'; b.style.cursor = hasAc ? 'pointer' : 'not-allowed'; b.classList.toggle('place-active', placeMode === 'SEL'); b.textContent = placeMode === 'SEL' ? '✈ Placing…' : '📍 Place Selected'; }
+		function updateHeadingBtns() { const hasAc = aircraft.length > 0; const b = document.getElementById('hdgBtnSel'); if (!b) return; b.disabled = !hasAc; b.style.opacity = hasAc ? '1' : '0.35'; b.style.cursor = hasAc ? 'pointer' : 'not-allowed'; b.classList.toggle('place-active', headingMode === 'SEL'); b.textContent = headingMode === 'SEL' ? '🧭 Aiming…' : '🧭 Aim Selected'; }
+		let showWpNames = false;
+		function toggleWpNames() { showWpNames = !showWpNames; const b = document.getElementById('wpNamesBtn'); if (b) b.classList.toggle('place-active', showWpNames); draw(); }
+		function updateWpBtns() { const active = placeMode || headingMode || addMode; document.querySelectorAll('.wp-btn').forEach(b => { b.style.cursor = active ? 'pointer' : 'not-allowed'; b.style.opacity = active ? '1' : '0.5'; }); }
+
+		// ── UI SYNC ──────────────────────────────────────────────────────────────
+		function populateFlDropdown() {
+			const sel = document.getElementById('fl_sel'); if (!sel || sel.options.length > 0) return;
+			FL_LIST.forEach(fl => { const o = document.createElement('option'); o.value = o.textContent = fl; sel.appendChild(o); });
+		}
+		function refreshPanel() {
+			populateFlDropdown();
+			const dd = document.getElementById('acSelect'), badge = document.getElementById('acBadge');
+			const hint = document.getElementById('noAcHint'), fields = document.getElementById('acFields');
+			if (badge) badge.textContent = aircraft.length + ' / ' + MAX_AC;
+			if (dd) {
+				dd.innerHTML = '';
+				if (!aircraft.length) { dd.innerHTML = '<option value="">— no aircraft —</option>'; }
+				else {
+					aircraft.forEach(ac => { const o = document.createElement('option'); o.value = ac.id; o.textContent = ac.callsign; dd.appendChild(o); });
+					if (!aircraft.find(a => a.id === selectedAcId)) selectedAcId = aircraft[aircraft.length - 1].id;
+					dd.value = selectedAcId;
+				}
+			}
+			if (!aircraft.length) { if (hint) hint.style.display = ''; if (fields) fields.style.display = 'none'; }
+			else { if (hint) hint.style.display = 'none'; if (fields) fields.style.display = ''; refreshPanelFields(); }
+			updateAddBtn();
+			updatePlaceBtns();
+			updateHeadingBtns();
+		}
+		function onAcSelectChange() {
+			const sel = document.getElementById('acSelect');
+			if (!sel) return;
+			const id = parseInt(sel.value);
+			if (!isNaN(id)) {
+				selectedAcId = id;
+				refreshPanelFields();
+				drawCompass('_sel');
+				draw();
+			}
+		}
+		function refreshPanelFields() {
+			const ac = getAcById(selectedAcId); if (!ac) return;
+			const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+			set('hdg_sel', ac.hdg); set('gs_sl', ac.gs); set('gs_n', ac.gs);
+			set('x_sl', ac.x); set('x_n', ac.x); set('y_sl', ac.y); set('y_n', ac.y); set('fl_sel', ac.fl);
+			drawCompass('_sel');
+		}
+		function updateAc(field, val) {
+			const ac = getAcById(selectedAcId); if (!ac) return;
+			if (field === 'fl') { ac.fl = val; }
+			else {
+				const v = parseFloat(val); ac[field] = (field === 'x' || field === 'y') ? parseFloat(v.toFixed(2)) : Math.round(v);
+				const mirror = { gs: 'gs_n', x: 'x_n', y: 'y_n' }; if (mirror[field]) { const el = document.getElementById(mirror[field]); if (el) el.value = ac[field]; }
+				if (field === 'hdg') drawCompass('_sel');
+			}
+			draw();
+		}
+		function updateAcN(field, val, mn, mx, def) {
+			const ac = getAcById(selectedAcId); if (!ac) return;
+			const v = Math.max(mn, Math.min(mx, parseFloat(val) || def));
+			ac[field] = (field === 'x' || field === 'y') ? parseFloat(v.toFixed(2)) : Math.round(v);
+			const mirror = { gs: 'gs_sl', x: 'x_sl', y: 'y_sl' }; if (mirror[field]) { const el = document.getElementById(mirror[field]); if (el) el.value = ac[field]; }
+			if (field === 'hdg') drawCompass('_sel'); draw();
+		}
+		function toggleAddMode() {
+			if (!addMode && aircraft.length >= MAX_AC) { alert('Maximum 40 aircraft on map.'); return; }
+			addMode = !addMode;
+			if (addMode) { placeMode = null; headingMode = null; updatePlaceBtns(); updateHeadingBtns(); }
+			updateAddBtn(); _canvas.style.cursor = addMode ? 'crosshair' : 'grab'; updateWpBtns();
+		}
+		function updateAddBtn() {
+			const btn = document.getElementById('addAcBtn'); if (!btn) return;
+			if (addMode) { btn.style.background = '#388bfd'; btn.style.borderColor = '#388bfd'; btn.style.color = '#fff'; btn.textContent = '➕ Adding… click map or waypoint'; }
+			else if (aircraft.length >= MAX_AC) { btn.style.background = '#21262d'; btn.style.borderColor = '#30363d'; btn.style.color = '#6e7681'; btn.textContent = '➕ Add Aircraft (40/40 full)'; }
+			else { btn.style.background = '#238636'; btn.style.borderColor = '#2ea043'; btn.style.color = '#fff'; btn.textContent = '➕ Add Aircraft'; }
+		}
+		/*function updatePlaceBtns() {
+			const hasAc = aircraft.length > 0;
+			const placeBtn = document.getElementById('placeBtnSel');
+			const hdgBtn = document.getElementById('hdgBtnSel');
+			[placeBtn, hdgBtn].forEach(btn => {
+				if (!btn) return;
+				btn.disabled = !hasAc;
+				btn.style.opacity = hasAc ? '1' : '0.35';
+				btn.style.cursor = hasAc ? 'pointer' : 'not-allowed';
+				btn.classList.toggle('place-active', placeMode === 'SEL'); 
+				btn.textContent = placeMode === 'SEL' ? '✈ Placing…' : '📍 PlaceSelected';
+			});
+		}*/
+		function resetAll() {
+			aircraft = []; selectedAcId = null; probes = []; colourPool = [...PROBE_COLOURS];
+			probeMode = null; probeBuilding = null; placeMode = null; headingMode = null; addMode = false;
+			offsetX = 0; offsetY = 0; setGridSize(50);
+			refreshPanel(); updateProbeUI(); updatePlaceBtns(); updateHeadingBtns(); updateAddBtn(); updatePlaceBtns(); updateWpBtns(); draw();
+		}
+
+		// ── COMPASS ──────────────────────────────────────────────────────────────
+		const canvasEl = _canvas;
+		let isDragging_click = false, _mouseDownX = 0, _mouseDownY = 0;
+		canvasEl.addEventListener('mousedown', e => { if (e.button !== 0) return; isDragging = true; _mouseDownX = e.clientX; _mouseDownY = e.clientY; lastMouseX = e.clientX; lastMouseY = e.clientY; });
+		// Fix touchpad drag-stuck: listen on window for mouseup AND mouseleave on document
+		window.addEventListener('mouseup', e => { isDragging_click = isDragging && Math.hypot(e.clientX - _mouseDownX, e.clientY - _mouseDownY) > 4; isDragging = false; });
+		document.addEventListener('visibilitychange', () => { if (document.hidden) { isDragging = false; isDragging_click = false; } });
+		canvasEl.addEventListener('mouseleave', e => { if (e.buttons === 0) { isDragging = false; } });
+		canvasEl.addEventListener('mousemove', e => { if (!isDragging) return; panByPixels(e.clientX - lastMouseX, e.clientY - lastMouseY); lastMouseX = e.clientX; lastMouseY = e.clientY; });
+		canvasEl.addEventListener('wheel', e => { e.preventDefault(); applyZoomDelta(e.deltaY < 0 ? 1.1 : 1 / 1.1); }, { passive: false });
+		canvasEl.addEventListener('dblclick', e => { e.preventDefault(); }, { passive: false });
+		canvasEl.addEventListener('touchstart', e => {
+			if (e.touches.length === 1) {
+				// Single finger — normal pan OR probe AC1 select
+				if (probeMode === 'SELECT1') {
+					e.preventDefault();
+					handleProbeLeftClick(e.touches[0]);
+					return;
+				}
+				isDragging = true;
+				lastMouseX = e.touches[0].clientX;
+				lastMouseY = e.touches[0].clientY;
+				lastTouchDist = null;
+			} else if (e.touches.length === 2) {
+				// Two fingers — pinch zoom
+				isDragging = false;
+				const dx = e.touches[0].clientX - e.touches[1].clientX;
+				const dy = e.touches[0].clientY - e.touches[1].clientY;
+				lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+			} else if (e.touches.length === 3) {
+				// Three fingers — probe AC2 select
+				e.preventDefault();
+				if (probeMode === 'SELECT2') {
+					handleProbeMiddleClick(e.touches[0]);
+				}
+			}
+		}, { passive: false });
+		canvasEl.addEventListener('touchmove', e => {
+			e.preventDefault();
+			if (e.touches.length === 1 && isDragging) { const t = e.touches[0]; panByPixels(t.clientX - lastMouseX, t.clientY - lastMouseY); lastMouseX = t.clientX; lastMouseY = t.clientY; }
+			else if (e.touches.length === 2) {
+				const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
+				const dist = Math.sqrt(dx * dx + dy * dy);
+				if (lastTouchDist !== null && dist > 0) applyZoomDelta(dist / lastTouchDist);
+				lastTouchDist = dist;
+			}
+		}, { passive: false });
+		canvasEl.addEventListener('touchend', e => {
+			if (e.touches.length === 0) {
+				isDragging = false;
+				lastTouchDist = null;
+			} else if (e.touches.length === 1) {
+				lastMouseX = e.touches[0].clientX;
+				lastMouseY = e.touches[0].clientY;
+				lastTouchDist = null;
+			}
+		}, { passive: false });
+
+		canvasEl.addEventListener('click', e => {
+			if (isDragging_click) return;
+			if (probeMode && handleProbeLeftClick(e)) return;
+			canvasClickPlace(e);
+		});
+		canvasEl.addEventListener('auxclick', e => {
+			if (e.button !== 1) return;
+			e.preventDefault();
+			if (probeMode === 'SELECT_2') { handleProbeMiddleClick(e); return; }
+			if (!probeMode) tryRemoveProbeByDataBlockClick(e);
+		});
+		requestAnimationFrame(() => {
+			autoFit(); draw(); drawCompass('sel');
+		});
+
+		// ── Compass Rose ──────────────────────────────────────────────
+		// ── COMPASS WIDGET ─────────────────────────────────────────────────────────
+		function drawCompass(ac) {
+			const canvas = document.getElementById('compass' + ac);
+			if (!canvas) return;
+			const dpr = window.devicePixelRatio || 1;
+			const SIZE = 216;
+			canvas.width = SIZE * dpr; canvas.height = SIZE * dpr;
+			canvas.style.width = SIZE + 'px'; canvas.style.height = SIZE + 'px';
+			const ctx = canvas.getContext('2d');
+			ctx.scale(dpr, dpr);
+			const W = SIZE, H = SIZE, cx = W / 2, cy = H / 2, r = W / 2 - 2;
+			const hdgEl = document.getElementById('hdg' + ac);
+			const hdg = hdgEl ? (parseFloat(hdgEl.value) || 0) : 0;
+			ctx.clearRect(0, 0, W, H);
+			// Background
+			ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+			ctx.fillStyle = '#0d1117'; ctx.fill();
+			ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.stroke();
+			// Tick marks
+			for (let i = 0; i < 360; i += 10) {
+				const a = (i - 90) * Math.PI / 180;
+				const isMaj = i % 90 === 0, isMid = i % 30 === 0;
+				const inn = isMaj ? r - 16 : isMid ? r - 12 : r - 6;
+				ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+				ctx.lineTo(cx + Math.cos(a) * inn, cy + Math.sin(a) * inn);
+				ctx.strokeStyle = isMaj ? '#58a6ff' : isMid ? '#555' : '#333';
+				ctx.lineWidth = isMaj ? 2.5 : 1.2; ctx.stroke();
+			}
+			// Cardinal labels
+			[['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([l, d]) => {
+				const a = (d - 90) * Math.PI / 180, tr = r - 24;
+				ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+				ctx.fillStyle = l === 'N' ? '#f78166' : '#777';
+				ctx.fillText(l, cx + Math.cos(a) * tr, cy + Math.sin(a) * tr);
+			});
+			// Needle
+			const na = (hdg - 90) * Math.PI / 180, nl = r - 18;
+			ctx.beginPath();
+			ctx.moveTo(cx, cy);
+			ctx.lineTo(cx + Math.cos(na) * nl, cy + Math.sin(na) * nl);
+			ctx.strokeStyle = ac === 'a' ? '#58a6ff' : '#f78166';
+			ctx.lineWidth = 4;
+			ctx.lineCap = 'round';
+			ctx.stroke();
+			// Centre dot
+			ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+
+		}
+
+		let _cDrag = null;
+		function compassAngleFromEvent(e, cvs) {
+			const rect = cvs.getBoundingClientRect();
+			const cx = rect.width / 2, cy = rect.height / 2;
+			const x = (e.clientX - rect.left) - cx;
+			const y = (e.clientY - rect.top) - cy;
+			let h = Math.round(Math.atan2(y, x) * 180 / Math.PI + 90);
+			if (h < 0) h += 360;
+			if (h >= 360) h -= 360;
+			return h;
+		}
+
+		function compassSetHdg(e, ac) {
+			const cvs = document.getElementById('compass' + ac);
+			if (!cvs) return;
+			const h = compassAngleFromEvent(e, cvs);
+			const numEl = document.getElementById('hdg' + ac);
+			if (numEl) numEl.value = h;
+			updateAc('hdg', h);
+		}
+
+		function compassDown(e, ac) {
+			e.stopPropagation();
+			e.preventDefault();
+			_cDrag = ac;
+			compassSetHdg(e, ac);
+		}
+
+		// Mouse drag
+		document.addEventListener('mousemove', e => {
+			if (!_cDrag) return;
+			e.preventDefault();
+			compassSetHdg(e, _cDrag);
+		});
+
+		document.addEventListener('mouseup', () => {
+			_cDrag = null;
+		});
+
+		// Touch drag (mobile)
+		document.addEventListener('touchmove', e => {
+			if (!_cDrag) return;
+			if (e.touches.length !== 1) return;
+			e.preventDefault();
+			const t = e.touches[0];
+			compassSetHdg({ clientX: t.clientX, clientY: t.clientY }, _cDrag);
+		}, { passive: false });
+
+		document.addEventListener('touchend', () => {
+			_cDrag = null;
+		});
+		document.addEventListener('touchcancel', () => {
+			_cDrag = null;
+		});
+
+		// ─── Right-click context menu ────────────────────────────────────────────────
+
+		let _ctxAcIndex = null; // 0 = A, 1 = B
+
+		// ── CONTEXT MENU ─────────────────────────────────────────────────────────
+		let _ctxAcId = null;
+		function _hideCtxMenu() { const m = document.getElementById('acContextMenu'); if (m) m.style.display = 'none'; _ctxAcId = null; }
+		function removeContextAc() { const id = _ctxAcId; _hideCtxMenu(); if (id !== null) removeAcById(id); }
+		_canvas.addEventListener('contextmenu', e => {
+			e.preventDefault(); e.stopPropagation();
+			const rect = _canvas.getBoundingClientRect();
+			const px = (e.clientX - rect.left) * (_canvas.width / rect.width), py = (e.clientY - rect.top) * (_canvas.height / rect.height);
+			const { toScreen } = getDrawTransform(); let bestId = null, bestD = 18;
+			aircraft.forEach(ac => { const p = toScreen(ac.x, ac.y), d = Math.hypot(px - p.x, py - p.y); if (d < bestD) { bestD = d; bestId = ac.id; } });
+			if (bestId === null) { _hideCtxMenu(); return; }
+			_ctxAcId = bestId; const ac = getAcById(bestId);
+			document.getElementById('acContextLabel').textContent = '✈ ' + (ac ? ac.callsign : '');
+			const menu = document.getElementById('acContextMenu'); menu.style.display = 'block';
+			let mx = e.clientX + 6, my = e.clientY + 6;
+			if (mx + 210 > window.innerWidth) mx = e.clientX - 210; if (my + 120 > window.innerHeight) my = e.clientY - 120;
+			menu.style.left = mx + 'px'; menu.style.top = my + 'px';
+		});
+		document.addEventListener('mousedown', e => {
+			const m = document.getElementById('acContextMenu');
+			if (m && m.style.display === 'block' && !m.contains(e.target)) _hideCtxMenu();
+		});
+		document.addEventListener('keydown', e => { if (e.key === 'Escape') _hideCtxMenu(); });
+		window.addEventListener('load', function () { populateFlDropdown(); refreshPanel(); autoFit(); draw(); });
+		window.addEventListener('resize', draw);
+	</script>
+</body>
+
+</html>
