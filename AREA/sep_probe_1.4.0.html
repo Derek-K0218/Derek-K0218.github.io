@@ -1872,31 +1872,17 @@
 			else if (aircraft.length >= MAX_AC) { btn.style.background = '#21262d'; btn.style.borderColor = '#30363d'; btn.style.color = '#6e7681'; btn.textContent = '➕ Add Aircraft (40/40 full)'; }
 			else { btn.style.background = '#238636'; btn.style.borderColor = '#2ea043'; btn.style.color = '#fff'; btn.textContent = '➕ Add Aircraft'; }
 		}
-		/*function updatePlaceBtns() {
-			const hasAc = aircraft.length > 0;
-			const placeBtn = document.getElementById('placeBtnSel');
-			const hdgBtn = document.getElementById('hdgBtnSel');
-			[placeBtn, hdgBtn].forEach(btn => {
-				if (!btn) return;
-				btn.disabled = !hasAc;
-				btn.style.opacity = hasAc ? '1' : '0.35';
-				btn.style.cursor = hasAc ? 'pointer' : 'not-allowed';
-				btn.classList.toggle('place-active', placeMode === 'SEL'); 
-				btn.textContent = placeMode === 'SEL' ? '✈ Placing…' : '📍 PlaceSelected';
-			});
-		}*/
 		function resetAll() {
 			aircraft = []; selectedAcId = null; probes = []; colourPool = [...PROBE_COLOURS];
 			probeMode = null; probeBuilding = null; placeMode = null; headingMode = null; addMode = false;
 			offsetX = 0; offsetY = 0; setGridSize(50);
-			refreshPanel(); updateProbeUI(); updatePlaceBtns(); updateHeadingBtns(); updateAddBtn(); updatePlaceBtns(); updateWpBtns(); draw();
+			refreshPanel(); updateProbeUI(); updatePlaceBtns(); updateHeadingBtns(); updateAddBtn(); updateWpBtns(); draw();
 		}
 
 		// ── COMPASS ──────────────────────────────────────────────────────────────
 		const canvasEl = _canvas;
 		const activePointers = new Map(); // pointerId → {clientX, clientY}
 		let isDragging_click = false, _mouseDownX = 0, _mouseDownY = 0;
-
 		canvasEl.addEventListener('pointerdown', e => {
 			canvasEl.setPointerCapture(e.pointerId);
 			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1931,7 +1917,6 @@
 		canvasEl.addEventListener('pointermove', e => {
 			if (!activePointers.has(e.pointerId)) return;
 			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
 			const count = activePointers.size;
 
 			if (count === 1 && isDragging) {
@@ -1947,9 +1932,9 @@
 				const dy = pts[0].y - pts[1].y;
 				const dist = Math.sqrt(dx * dx + dy * dy);
 				if (lastTouchDist) {
-					const midX = (pts[0].x + pts[1].x) / 2;
-					const midY = (pts[0].y + pts[1].y) / 2;
-					applyZoomDelta(dist / lastTouchDist, midX, midY);
+					applyZoomDelta(dist / lastTouchDist,
+						(pts[0].x + pts[1].x) / 2,
+						(pts[0].y + pts[1].y) / 2);
 				}
 				lastTouchDist = dist;
 			}
@@ -1962,7 +1947,6 @@
 				lastTouchDist = null;
 			}
 		});
-
 		canvasEl.addEventListener('pointercancel', e => {
 			activePointers.delete(e.pointerId);
 			if (activePointers.size === 0) {
