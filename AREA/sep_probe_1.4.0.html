@@ -769,7 +769,7 @@
 		let gridSize = 10, offsetX = 0, offsetY = 0, isDragging = false, lastMouseX = 0, lastMouseY = 0, lastTouchDist = null;
 		let currentScenario = null;
 		const FONT = '13px monospace';
-		const LINE_H = 17;
+		const LINE_H = 14;
 		const MAGVAR = -3;
 		// Terminal Circumcircle through MAPLE, CYBER, SONNY
 		// Centre: (-4.512, 145.488) NM  |  Radius: 86.07 NM
@@ -884,44 +884,12 @@
 
 		// ── Data block: line 3 uses two separate fillText calls with a fixed px gap ───
 		// 5 "units" = 5 × (width of one character 'M' in the font) — measured live each draw.
-		/*function drawAcData(ctx, px, py, callsign, hdg, gs, side, cpaLabels, fl) {
-			ctx.font = '11px monospace';
-			ctx.textAlign = 'left';
-			ctx.textBaseline = 'top';
-			const hdgStr = String(Math.round(hdg)).padStart(3, '0');
-			const gsStr = String(Math.round(gs / 10)).padStart(2, '0');
-			const charW = ctx.measureText('0').width;
-			const GAP = charW * 5;
-			const hdgW = ctx.measureText(hdgStr).width;
-			const line3W = hdgW + GAP + ctx.measureText(gsStr).width;
-			const line1W = ctx.measureText(callsign).width;
-			const line2W = ctx.measureText(fl).width;
-			let maxW = Math.max(line1W, line2W, line3W);
-			if (cpaLabels && cpaLabels.length) {
-				cpaLabels.forEach(cl => { maxW = Math.max(maxW, ctx.measureText(cl.text).width); });
-			}
-			const OFFSET = 16;
-			const blockX = side === 'right' ? px + OFFSET : px - OFFSET - maxW;
-			const blockY = py - LINE_H;
-			ctx.fillStyle = '#ffffff';
-			ctx.fillText(callsign, blockX, blockY);
-			ctx.fillText(fl, blockX, blockY + LINE_H);
-			ctx.fillText(hdgStr, blockX, blockY + LINE_H * 2);
-			ctx.fillText(gsStr, blockX + hdgW + GAP, blockY + LINE_H * 2);
-			if (cpaLabels && cpaLabels.length) {
-				cpaLabels.forEach((cl, i) => {
-					ctx.fillStyle = cl.colour;
-					ctx.fillText(cl.text, blockX, blockY + LINE_H * 4 + i * LINE_H);
-				});
-			}
-			ctx.textBaseline = 'alphabetic';
-		}*/
 		function drawAcData(ctx, px, py, ac, side, cpaLabels) {
 			const { callsign, hdg, gs, fl, lx, ly } = ac;
 			const acType = ac.type;
 			const wtc = ac.wtc;
 
-			ctx.font = '11px monospaced';
+			ctx.font = '11px Verdana';
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'top';
 
@@ -940,19 +908,29 @@
 			if (cpaLabels?.length)
 				cpaLabels.forEach(cl => maxW = Math.max(maxW, ctx.measureText(cl.text).width));
 
-			const OFFSET = 16;
+			const OFFSET = 10;
 			// Apply drag offset
 			const bx = (side === 'right' ? px + OFFSET : px - OFFSET - maxW) + lx;
 			const by = (py - LINE_H) + ly;
 
 			// ── LEADER LINE ─────────────────────────────────────────
-			// Dynamically pick anchor: whichever edge of the block is closer to the aircraft
-			const leftEdgeX = bx;
-			const rightEdgeX = bx + maxW;
-			const anchorX = Math.abs(px - leftEdgeX) < Math.abs(px - rightEdgeX)
-				? leftEdgeX - 2
-				: rightEdgeX + 2;
-			const anchorY = by + LINE_H * 0.5;
+			// Always measure from aircraft icon — cap line at LABEL_MAX_DIST
+			const labelCentreX = bx + maxW / 2;
+			const labelCentreY = by + LINE_H * 0.5;
+			const rawDx = labelCentreX - px;
+			const rawDy = labelCentreY - py;
+			const rawDist = Math.hypot(rawDx, rawDy);
+
+			// Anchor: whichever edge is closer to the aircraft
+			const leftDist = Math.hypot(bx - px, labelCentreY - py);
+			const rightDist = Math.hypot(bx + maxW - px, labelCentreY - py);
+			const anchorX = leftDist < rightDist ? bx - 2 : bx + maxW + 2;
+			const anchorY = labelCentreY;
+
+			// Line endpoint on aircraft side — capped so both sides feel equal length
+			const capDist = Math.min(rawDist, LABEL_MAX_DIST);
+			const acEndX = rawDist > 0 ? px + (rawDx / rawDist) * Math.min(8, capDist) : px;
+			const acEndY = rawDist > 0 ? py + (rawDy / rawDist) * Math.min(8, capDist) : py;
 
 			ctx.save();
 			ctx.strokeStyle = '#ffffff';
@@ -960,8 +938,9 @@
 			ctx.beginPath();
 			ctx.moveTo(px, py);
 			ctx.lineTo(anchorX, anchorY);
-			ctx.stroke();
+			ctx.stroke();;
 			ctx.restore();
+
 
 			// ── TEXT ────────────────────────────────────────────────
 			ctx.fillStyle = '#ffffff';
@@ -1207,6 +1186,8 @@
 			const mx = (e.clientX - rect.left) * _canvas.width / rect.width;
 			const my = (e.clientY - rect.top) * _canvas.height / rect.height;
 			const { toScreen } = getDrawTransform();
+			const ctx = _canvas.getContext('2d');
+			ctx.font = '11px Verdana';
 
 			for (const ac of aircraft) {
 				const acProbes = probes.filter(p => p.ac1 === ac.id);
@@ -1220,43 +1201,44 @@
 				}
 				const side = p.x > otherX ? 'right' : 'left';
 
-				// Calculate block X — must match drawAcData exactly
-				const ctx = _canvas.getContext('2d');
-				ctx.font = FONT;
-				const cpaLabels = acProbes.map((probe, ri) => ({ probe, ri }));
+				// Measure maxW the same way drawAcData does
+				const acType = ac.type ?? 'B738';
+				const wtc = ac.wtc ?? 'M';
+				const hdgStr = String(Math.round(ac.hdg)).padStart(3, '0');
+				const gsStr = String(Math.round(ac.gs / 10)).padStart(2, '0');
+				const charW = ctx.measureText('0').width;
+				const GAP = charW * 5;
+				const line1W = ctx.measureText(`${ac.callsign} ${acType}${wtc}`).width;
+				const line2W = ctx.measureText(`${ac.fl}`).width;
+				const line3W = ctx.measureText(hdgStr).width + GAP + ctx.measureText(gsStr).width;
+				let maxW = Math.max(line1W, line2W, line3W);
 
-				acProbes.forEach((probe, ri) => {
-					// Row position of this probe label — line 4 onwards (0-indexed)
-					const rowY = p.y - LINE_H + LINE_H * (4 + ri);
-
-					// Build the label text to measure its width
-					const paired = getAcById(probe.ac1 === ac.id ? probe.ac2 : probe.ac1);
+				acProbes.forEach(probe => {
+					const paired = getAcById(probe.ac2);
 					if (!paired) return;
 					const v = acToVals(ac, paired);
 					const pcpa = calcCPA(v);
-					const isFutureCPA = !pcpa.diverging && pcpa.tcpah > 0;
-					let labelText;
-					if (isFutureCPA) {
+					let lbl;
+					if (!pcpa.diverging && pcpa.tcpah > 0) {
 						const tsec = Math.max(pcpa.tcpamin * 60, 0);
 						const mm = String(Math.floor(tsec / 60)).padStart(2, '0');
 						const ss = String(Math.floor(tsec % 60)).padStart(2, '0');
-						labelText = `${pcpa.dcpa.toFixed(1)}NM ${mm}:${ss}`;
+						lbl = `${pcpa.dcpa.toFixed(1)}NM ${mm}:${ss}`;
 					} else {
-						const dist = Math.hypot(ac.x - paired.x, ac.y - paired.y);
-						labelText = `${dist.toFixed(2)}NM --:--`;
+						lbl = `${Math.hypot(ac.x - paired.x, ac.y - paired.y).toFixed(2)}NM --:--`;
 					}
+					maxW = Math.max(maxW, ctx.measureText(lbl).width);
+				});
 
-					const labelW = ctx.measureText(labelText).width;
-					const OFFSET = 16;
-					const blockX = side === 'right' ? p.x + OFFSET : p.x - OFFSET - labelW;
+				const OFFSET = 10;
+				const bx = (side === 'right' ? p.x + OFFSET : p.x - OFFSET - maxW) + (ac.lx ?? 0);
+				const by = (p.y - LINE_H) + (ac.ly ?? 0);
 
-					// Hit test: only the exact label bounding box + small padding
-					const hitX1 = blockX - 3;
-					const hitX2 = blockX + labelW + 3;
-					const hitY1 = rowY - 2;
-					const hitY2 = rowY + LINE_H + 2;
-
-					if (mx >= hitX1 && mx <= hitX2 && my >= hitY1 && my <= hitY2) {
+				acProbes.forEach((probe) => {
+					// Hit test ONLY on the probe label row
+					const rowY = by + LINE_H * 4;  // rows: 0=callsign, 1=FL, 2=HDG/GS, 4=probes
+					if (mx >= bx - 3 && mx <= bx + maxW + 3 &&
+						my >= rowY && my <= rowY + LINE_H) {
 						recycleColour(probe.colour);
 						probes = probes.filter(pr => pr.id !== probe.id);
 						updateProbeUI();
@@ -1948,10 +1930,12 @@
 
 		// ── UI SYNC ──────────────────────────────────────────────────────────────
 		function populateFlDropdown() {
-			const sel = document.getElementById('fl_sel'); 
+			const sel = document.getElementById('fl_sel');
 			if (!sel || sel.options.length > 0) return;
-			FL_LIST.forEach(fl => { const o = document.createElement('option'); o.value = o.textContent = fl; sel.appendChild
-			(o); });
+			FL_LIST.forEach(fl => {
+				const o = document.createElement('option'); o.value = o.textContent = fl; sel.appendChild
+					(o);
+			});
 		}
 		function refreshPanel() {
 			populateFlDropdown();
@@ -1962,31 +1946,31 @@
 			if (badge) badge.textContent = aircraft.length + ' / ' + MAX_AC;
 			if (dd) {
 				dd.innerHTML = '';
-				if (!aircraft.length) { 
-					dd.innerHTML = '<option value="">— no aircraft —</option>'; 
+				if (!aircraft.length) {
+					dd.innerHTML = '<option value="">— no aircraft —</option>';
 				} else {
 					// Sort callsigns A→Z
 					aircraft.sort((a, b) => a.callsign.localeCompare(b.callsign));
-					aircraft.forEach(ac => { 
-						const o = document.createElement('option'); 
-						o.value = ac.id; 
-						o.textContent = `${ac.callsign} (${ac.type ?? 'B738'}${ac.wtc ?? 'M'})`; 
-						dd.appendChild(o); 
+					aircraft.forEach(ac => {
+						const o = document.createElement('option');
+						o.value = ac.id;
+						o.textContent = `${ac.callsign} (${ac.type ?? 'B738'}${ac.wtc ?? 'M'})`;
+						dd.appendChild(o);
 					});
 
-					if (!aircraft.find(a => a.id === selectedAcId)) 
+					if (!aircraft.find(a => a.id === selectedAcId))
 						selectedAcId = aircraft[aircraft.length - 1].id;
 					dd.value = selectedAcId;
 				}
 			}
 
-			if (!aircraft.length) { 
-				if (hint) hint.style.display = ''; 
-				if (fields) fields.style.display = 'none'; 
-			} else { 
-				if (hint) hint.style.display = 'none'; 
-				if (fields) fields.style.display = ''; 
-				refreshPanelFields(); 
+			if (!aircraft.length) {
+				if (hint) hint.style.display = '';
+				if (fields) fields.style.display = 'none';
+			} else {
+				if (hint) hint.style.display = 'none';
+				if (fields) fields.style.display = '';
+				refreshPanelFields();
 			}
 
 			updateAddBtn();
@@ -2050,80 +2034,85 @@
 
 		// ── CANVAS INTERACTION ──────────────────────────────────
 		const canvasEl = _canvas;
-		const activePointers = new Map(); // pointerId → {clientX, clientY}
+		const activePointers = new Map(); // pointerId → {x, y}
 		let isDragging_click = false, _mouseDownX = 0, _mouseDownY = 0;
 
 		canvasEl.addEventListener('pointerdown', e => {
-			// Label drag detection — check before pan
-			const isLabelDragTrigger = (e.button === 1) || (e.button === 0 && e.ctrlKey)
-			if (isLabelDragTrigger && activePointers.size === 0) {
-				const rect = _canvas.getBoundingClientRect();
-				const mx = (e.clientX - rect.left) * _canvas.width / rect.width;
-				const my = (e.clientY - rect.top) * _canvas.height / rect.height;
-				const { toScreen } = getDrawTransform();
-				const ctx = _canvas.getContext('2d');
-				ctx.font = FONT;
+			const isSpecialClick = (e.button === 1) || (e.button === 0 && e.ctrlKey);
 
-				for (const ac of aircraft) {
-					const p = toScreen(ac.x, ac.y);
-					let otherX = _lastW / 2;
-					if (aircraft.length > 1) {
-						const oth = aircraft.filter(o => o.id !== ac.id);
-						otherX = oth.reduce((s, o) => s + toScreen(o.x, o.y).x, 0) / oth.length;
-					}
-					const side = p.x > otherX ? 'right' : 'left';
-					const acType = ac.type;
-					const wtc = ac.wtc;
-					const line1W = ctx.measureText(`${ac.callsign} ${acType}${wtc}`).width;
-					const hdgStr = String(Math.round(ac.hdg)).padStart(3, '0');
-					const gsStr = String(Math.round(ac.gs / 10)).padStart(2, '0');
-					const charW = ctx.measureText('0').width;
-					const GAP = charW * 5;
-					const line3W = ctx.measureText(hdgStr).width + GAP + ctx.measureText(gsStr).width;
-					const line2W = ctx.measureText(`${ac.fl}`).width;
-					const probeLabels = probes.filter(pr => pr.ac1 === ac.id);
-					let maxW = Math.max(line1W, line2W, line3W);
-					probeLabels.forEach(pr => {
-						const paired = getAcById(pr.ac2);
-						if (paired) maxW = Math.max(maxW, ctx.measureText(`${Math.hypot(ac.x - paired.x, ac.y - paired.y).toFixed(2)}NM --:--`).width);
-					});
+			// ── MIDDLE / CTRL+LEFT — label drag OR probe removal ──────────────
+			if (isSpecialClick) {
+				e.preventDefault();
 
-					const OFFSET = 16;
-					const bx = (side === 'right' ? p.x + OFFSET : p.x - OFFSET - maxW) + ac.lx;
-					const by = (p.y - LINE_H) + ac.ly;
-					const totalH = LINE_H * (4 + (probes.filter(pr => pr.ac1 === ac.id).length));
+				// Only allow label drag when no other pointer is active (prevent conflict with pinch)
+				if (activePointers.size === 0) {
+					const rect = _canvas.getBoundingClientRect();
+					const mx = (e.clientX - rect.left) * _canvas.width / rect.width;
+					const my = (e.clientY - rect.top) * _canvas.height / rect.height;
+					const { toScreen } = getDrawTransform();
+					const ctx = _canvas.getContext('2d');
+					ctx.font = '11px Verdana'; // must match drawAcData
 
-					if (mx >= bx && mx <= bx + maxW && my >= by && my <= by + totalH) {
-						draggingLabelAc = ac;
-						labelDragStartX = e.clientX;
-						labelDragStartY = e.clientY;
-						labelDragOriginX = ac.lx;
-						labelDragOriginY = ac.ly;
-						isDragging = false; // prevent map pan
-						e.preventDefault();
-						canvasEl.setPointerCapture(e.pointerId);
-						activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-						return;
+					for (const ac of aircraft) {
+						const p = toScreen(ac.x, ac.y);
+						let otherX = _lastW / 2;
+						if (aircraft.length > 1) {
+							const oth = aircraft.filter(o => o.id !== ac.id);
+							otherX = oth.reduce((s, o) => s + toScreen(o.x, o.y).x, 0) / oth.length;
+						}
+						const side = p.x > otherX ? 'right' : 'left';
+						const hdgStr = String(Math.round(ac.hdg)).padStart(3, '0');
+						const gsStr = String(Math.round(ac.gs / 10)).padStart(2, '0');
+						const charW = ctx.measureText('0').width;
+						const GAP = charW * 5;
+						const line1W = ctx.measureText(`${ac.callsign} ${ac.type}${ac.wtc}`).width;
+						const line2W = ctx.measureText(`${ac.fl}`).width;
+						const line3W = ctx.measureText(hdgStr).width + GAP + ctx.measureText(gsStr).width;
+						const probeLabels = probes.filter(pr => pr.ac1 === ac.id);
+						let maxW = Math.max(line1W, line2W, line3W);
+						probeLabels.forEach(pr => {
+							const paired = getAcById(pr.ac2);
+							if (paired) maxW = Math.max(maxW, ctx.measureText(
+								`${Math.hypot(ac.x - paired.x, ac.y - paired.y).toFixed(2)}NM --:--`).width);
+						});
+						const OFFSET = 10; // must match drawAcData
+						const bx = (side === 'right' ? p.x + OFFSET : p.x - OFFSET - maxW) + (ac.lx ?? 0);
+						const by = (p.y - LINE_H) + (ac.ly ?? 0);
+						const totalH = LINE_H * 3;
+
+						if (mx >= bx && mx <= bx + maxW && my >= by && my <= by + totalH) {
+							// Hit inside data block — start label drag
+							draggingLabelAc = ac;
+							labelDragStartX = e.clientX;
+							labelDragStartY = e.clientY;
+							labelDragOriginX = ac.lx;
+							labelDragOriginY = ac.ly;
+							isDragging = false;
+							canvasEl.setPointerCapture(e.pointerId);
+							activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+							return; // label drag started — stop here
+						}
 					}
 				}
-			}
 
-			// Middle mouse button — handle immediately, don't capture
-			if (e.pointerType === 'mouse' && e.button === 1) {
-				e.preventDefault();
-				if (probeMode === 'SELECT_2') handleProbeMiddleClick(e);
-				else tryRemoveProbeByDataBlockClick(e);
+				// Missed all data blocks (or activePointers > 0) — try probe actions
+				if (probeMode === 'SELECT_2') {
+					handleProbeMiddleClick(e);
+				} else {
+					tryRemoveProbeByDataBlockClick(e);
+				}
 				return;
 			}
 
+			// ── NORMAL LEFT CLICK — pan / add / place / probe ──────────────
 			e.preventDefault();
 			canvasEl.setPointerCapture(e.pointerId);
 			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 			_mouseDownX = e.clientX;
 			_mouseDownY = e.clientY;
-			isDragging_click = false;
-			const count = activePointers.size;
+			_isDraggingClick = false;
 
+			const count = activePointers.size;
 			if (count === 1) {
 				isDragging = true;
 				lastMouseX = e.clientX;
@@ -2137,7 +2126,7 @@
 		}, { passive: false });
 
 		canvasEl.addEventListener('pointermove', e => {
-			// At the TOP of pointermove handler:
+			// Label drag
 			if (draggingLabelAc) {
 				const dx = e.clientX - labelDragStartX;
 				const dy = e.clientY - labelDragStartY;
@@ -2151,8 +2140,13 @@
 
 			if (!activePointers.has(e.pointerId)) return;
 			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-			const count = activePointers.size;
 
+			// Mark as a drag if moved more than 5px
+			if (Math.hypot(e.clientX - _mouseDownX, e.clientY - _mouseDownY) > 5) {
+				isDragging_click = true;
+			}
+
+			const count = activePointers.size;
 			if (count === 1 && isDragging) {
 				panByPixels(e.clientX - lastMouseX, e.clientY - lastMouseY);
 				lastMouseX = e.clientX;
@@ -2169,33 +2163,47 @@
 		});
 
 		canvasEl.addEventListener('pointerup', e => {
-			// At the TOP of pointerup handler:
+			// Label drag release
 			if (draggingLabelAc) {
 				draggingLabelAc = null;
-				isDragging_click = false;
 				activePointers.delete(e.pointerId);
+				isDragging = false;
 				return;
 			}
 
-			if (e.pointerType === 'mouse' && e.button === 1) return;
+			// Middle mouse release — probe removal on data block
+			if (e.pointerType === 'mouse' && e.button === 1) {
+				activePointers.delete(e.pointerId);
+				if (probeMode !== 'SELECT_2') tryRemoveProbeByDataBlockClick(e);
+				return;
+			}
+
+			// Ctrl+left — probe AC2 select OR probe removal (no drag guard needed)
+			if (e.button === 0 && e.ctrlKey) {
+				activePointers.delete(e.pointerId);
+				if (activePointers.size === 0) { isDragging = false; lastTouchDist = null; }
+				if (probeMode === 'SELECT_2') {
+					handleProbeMiddleClick(e);
+				} else {
+					tryRemoveProbeByDataBlockClick(e);
+				}
+				return;
+			}
+
+			// Plain left — apply drag guard
 			const moved = Math.hypot(e.clientX - _mouseDownX, e.clientY - _mouseDownY);
-			isDragging_click = moved < 5;
 			activePointers.delete(e.pointerId);
 			if (activePointers.size === 0) { isDragging = false; lastTouchDist = null; }
+			if (moved >= 5) return; // was a pan drag
 
-			if (isDragging_click && e.button === 0) {
-				if (e.ctrlKey) {
-					// Ctrl+click = middle click equivalent
-					if (probeMode === 'SELECT_2') { handleProbeMiddleClick(e); return; }
-					tryRemoveProbeByDataBlockClick(e);
-					return;
-				}
-				if (probeMode) { handleProbeLeftClick(e); return; }
-				canvasClickPlace(e);
+			if (e.button === 0) {
+				if (handleProbeLeftClick(e)) return; // consumed by probe flow
+				canvasClickPlace(e);                 // add aircraft / place / aim heading
 			}
 		});
 
 		canvasEl.addEventListener('pointercancel', e => {
+			draggingLabelAc = null;
 			activePointers.delete(e.pointerId);
 			if (activePointers.size === 0) { isDragging = false; lastTouchDist = null; }
 		});
