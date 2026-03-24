@@ -499,7 +499,7 @@
 						style="flex:1;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:0.78rem;font-weight:600;padding:3px 6px;cursor:pointer;">
 						<option value="">— no aircraft —</option>
 					</select>
-					<span class="ac-badge" id="acBadge">0 / 40</span>
+					<span class="ac-badge" id="acBadge">0 / 50</span>
 				</div>
 				<div class="panel-body">
 					<div id="noAcHint" class="empty-hint">No aircraft on map.<br>Use <strong>+ Add Aircraft</strong>
@@ -522,14 +522,14 @@
 									max="550" value="350" oninput="updateAcN('gs',this.value,280,550,350)"></div>
 							<div style="font-size:0.7rem;color:#8b949e;margin-top:3px;">knots (280–550)</div>
 						</div>
-						<div class="field"><span class="lbl">Position X (East/West NM)</span>
+						<div class="field" style="display:none"><span class="lbl">Position X (East/West NM)</span>
 							<div class="row"><input type="range" id="x_sl" min="-300" max="300" value="0"
 									oninput="updateAc('x',this.value)">
 								<input type="number" id="x_n" min="-300" max="300" value="0"
 									oninput="updateAcN('x',this.value,-300,300,0)">
 							</div>
 						</div>
-						<div class="field"><span class="lbl">Position Y (North/South NM)</span>
+						<div class="field" style="display:none"><span class="lbl">Position Y (North/South NM)</span>
 							<div class="row"><input type="range" id="y_sl" min="-300" max="300" value="0"
 									oninput="updateAc('y',this.value)"><input type="number" id="y_n" min="-300"
 									max="300" value="0" oninput="updateAcN('y',this.value,-300,300,0)"></div>
@@ -771,6 +771,7 @@
 		const FONT = '13px monospace';
 		const LINE_H = 14;
 		const MAGVAR = -3;
+		const MAX_AC = 50;
 		// Terminal Circumcircle through MAPLE, CYBER, SONNY
 		// Centre: (-4.512, 145.488) NM  |  Radius: 86.07 NM
 		const TMarc_centreNM = { x: -4.512, y: 145.488 };
@@ -1067,7 +1068,6 @@
 			});
 		}
 		// ── AIRCRAFT ARRAY MODEL ─────────────────────────────────────────────────
-		const MAX_AC = 40;
 		const OPERATORS = [
 			'CCA', 'ACA', 'JYH', 'CPA', 'CPA', 'CPA', 'CPA', 'CPA', 'APG', 'AXM', 'AIC', 'AIQ', 'XAX', 'ANA', 'AAR', 'BKP', 'MXD', 'CAL', 'EVA', 'SJX', 'HGB', 'HGB', 'HGB', 'HKE', 'HKE', 'HKE', 'HKE', 'CRK', 'CRK', 'CRK', 'AHK', 'HKC', 'UAE', 'QTR', 'CLX', 'CES', 'CSN', 'ETH', 'GIA', 'CHH', 'CSZ', 'IGO', 'JJA', 'JAL', 'JJP', 'JNA', 'TWB', 'TTW', 'TGW', 'SIN', 'THA', 'HVN', 'KAL', 'MAS', 'APJ', 'RBA', 'CSH', 'CQH', 'UAL', 'VJC', 'VTI', 'CXA', 'BOX', 'AIH', 'GTI', 'ICV', 'GEC', 'CKS', 'ETD', 'KMI', 'ABD', 'CSS', 'HGO', 'RMY', 'AZG', 'PAC', 'TVR', 'UPS', 'KXP', 'TBJ', 'TAX', 'VJT', 'PTA', 'BAV', 'TZP', 'AMU', 'KME', 'ABL', 'TLM', 'CDG', 'SVA', 'THY', 'DHX', 'DHK', 'MPH'];
 		const FL_LIST = (() => { const l = []; for (let f = 120; f <= 450; f += 10) { if (f !== 420 && f !== 440) l.push('F' + f); } return l; })();
@@ -2013,7 +2013,7 @@
 			if (field === 'hdg') drawCompass('_sel'); draw();
 		}
 		function toggleAddMode() {
-			if (!addMode && aircraft.length >= MAX_AC) { alert('Maximum 40 aircraft on map.'); return; }
+			if (!addMode && aircraft.length >= MAX_AC) { alert('Maximum 50 aircraft on map.'); return; }
 			addMode = !addMode;
 			if (addMode) { placeMode = null; headingMode = null; updatePlaceBtns(); updateHeadingBtns(); }
 			updateAddBtn(); _canvas.style.cursor = addMode ? 'crosshair' : 'grab'; updateWpBtns();
@@ -2021,7 +2021,7 @@
 		function updateAddBtn() {
 			const btn = document.getElementById('addAcBtn'); if (!btn) return;
 			if (addMode) { btn.style.background = '#388bfd'; btn.style.borderColor = '#388bfd'; btn.style.color = '#fff'; btn.textContent = '+ Adding… click map or waypoint'; }
-			else if (aircraft.length >= MAX_AC) { btn.style.background = '#21262d'; btn.style.borderColor = '#30363d'; btn.style.color = '#6e7681'; btn.textContent = '+ Add Aircraft (40/40 full)'; }
+			else if (aircraft.length >= MAX_AC) { btn.style.background = '#21262d'; btn.style.borderColor = '#30363d'; btn.style.color = '#6e7681'; btn.textContent = '+ Add Aircraft (' & MAX_AC & '/' & MAX_AC & 'full)'; }
 			else { btn.style.background = '#238636'; btn.style.borderColor = '#2ea043'; btn.style.color = '#fff'; btn.textContent = '+ Add Aircraft'; }
 		}
 		function resetAll() {
