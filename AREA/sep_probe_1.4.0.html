@@ -251,6 +251,28 @@
 			margin-top: 3px;
 		}
 
+		.field select {
+			background: #21262d;
+			border: 1px solid #30363d;
+			border-radius: 5px;
+			color: #e6edf3;
+			font-size: 0.78rem;
+			font-weight: 600;
+			padding: 3px 6px;
+			cursor: pointer;
+			appearance: none;
+			-webkit-appearance: none;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: right 8px center;
+			padding-right: 24px;
+		}
+
+		.field select:focus {
+			outline: 1px solid #58a6ff;
+			border-color: #58a6ff;
+		}
+
 		.grid-panel {
 			background: #0d1117;
 			border: 1px solid #30363d;
@@ -736,13 +758,18 @@
 				</div>
 			</div>
 
-			<div style="margin-bottom:10px;">
+			<div style="display:flex;gap:8px;margin-bottom:6px;">
 				<button id="sepProbeBtn" onclick="toggleSepProbe()"
-					style="width:100%;background:#1f6feb;color:#fff;padding:10px;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:1px;">SEP
+					style="flex:1;background:#1f6feb;color:#fff;padding:10px;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:1px;">SEP
 					PROBE</button>
-				<div id="probePrompt"
-					style="font-size:0.72rem;color:#8b949e;margin-top:6px;min-height:1.2em;text-align:center;"></div>
+				<button id="rblBtn" onclick="toggleRbl()"
+					style="flex:1;background:#1f6feb;color:#fff;padding:10px;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:1px;">RBL</button>
 			</div>
+			<div id="probePrompt"
+				style="font-size:0.72rem;color:#8b949e;margin-top:4px;min-height:1.2em;text-align:center;"></div>
+			<div id="rblPrompt"
+				style="font-size:0.72rem;color:#8b949e;margin-top:2px;min-height:1.2em;text-align:center;"></div>
+
 			<div class="btn-row">
 				<button class="main-btn btn-scenario" onclick="exportScenarioCSV()">EXPORT CSV</button>
 				<button class="main-btn btn-scenario" onclick="importScenarioCSV()">IMPORT CSV</button>
@@ -975,7 +1002,8 @@
 			const o = S(0, 0);
 			ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, H); ctx.stroke();
 			ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(W, o.y); ctx.stroke();
-			drawTMA(ctx, S); drawFIR(ctx, S); drawTRW(ctx, S); drawTRV(ctx, S); drawTRD(ctx, S); drawRedLine(ctx, S); drawAirways(ctx, S); drawWaypoints(ctx, S);
+			drawTMA(ctx, S); drawFIR(ctx, S); drawTRW(ctx, S); drawTRV(ctx, S); drawTRD(ctx, S);
+			drawRedLine(ctx, S); drawAirways(ctx, S); drawWaypoints(ctx, S); drawRbls(ctx, S);
 			const cpaMap = {};
 			aircraft.forEach(a => { cpaMap[a.id] = []; });
 			probes.forEach(probe => {
@@ -1042,7 +1070,6 @@
 				}
 				const side = p.x > otherX ? 'right' : 'left';
 				drawAcData(ctx, p.x, p.y, ac, side, cpaMap[ac.id] ?? []);
-				//drawAcData(ctx, p.x, p.y, ac.callsign, ac.hdg, ac.gs, p.x <= otherX ? 'left' : 'right', cpaMap[ac.id] || [], ac.fl);
 			});
 		}
 		function drawWaypoints(ctx, S) {
@@ -1067,10 +1094,31 @@
 				ctx.restore();
 			});
 		}
+
 		// ── AIRCRAFT ARRAY MODEL ─────────────────────────────────────────────────
 		const OPERATORS = [
 			'CCA', 'ACA', 'JYH', 'CPA', 'CPA', 'CPA', 'CPA', 'CPA', 'APG', 'AXM', 'AIC', 'AIQ', 'XAX', 'ANA', 'AAR', 'BKP', 'MXD', 'CAL', 'EVA', 'SJX', 'HGB', 'HGB', 'HGB', 'HKE', 'HKE', 'HKE', 'HKE', 'CRK', 'CRK', 'CRK', 'AHK', 'HKC', 'UAE', 'QTR', 'CLX', 'CES', 'CSN', 'ETH', 'GIA', 'CHH', 'CSZ', 'IGO', 'JJA', 'JAL', 'JJP', 'JNA', 'TWB', 'TTW', 'TGW', 'SIN', 'THA', 'HVN', 'KAL', 'MAS', 'APJ', 'RBA', 'CSH', 'CQH', 'UAL', 'VJC', 'VTI', 'CXA', 'BOX', 'AIH', 'GTI', 'ICV', 'GEC', 'CKS', 'ETD', 'KMI', 'ABD', 'CSS', 'HGO', 'RMY', 'AZG', 'PAC', 'TVR', 'UPS', 'KXP', 'TBJ', 'TAX', 'VJT', 'PTA', 'BAV', 'TZP', 'AMU', 'KME', 'ABL', 'TLM', 'CDG', 'SVA', 'THY', 'DHX', 'DHK', 'MPH'];
-		const FL_LIST = (() => { const l = []; for (let f = 120; f <= 450; f += 10) { if (f !== 420 && f !== 440) l.push('F' + f); } return l; })();
+		const FL_LIST = [
+			{ v: 'F120', l: 'F120' }, { v: 'F130', l: 'F130' }, { v: 'F140', l: 'F140' },
+			{ v: 'F150', l: 'F150' }, { v: 'F160', l: 'F160' }, { v: 'F170', l: 'F170' },
+			{ v: 'F180', l: 'F180' }, { v: 'F187', l: 'F187 (S0570)' }, { v: 'F190', l: 'F190' },
+			{ v: 'F197', l: 'F197 (S0600)' }, { v: 'F200', l: 'F200' }, { v: 'F207', l: 'F207 (S0630)' },
+			{ v: 'F210', l: 'F210' }, { v: 'F217', l: 'F217 (S0660)' }, { v: 'F220', l: 'F220' },
+			{ v: 'F226', l: 'F226 (S0690)' }, { v: 'F230', l: 'F230' }, { v: 'F236', l: 'F236 (S0720)' },
+			{ v: 'F240', l: 'F240' }, { v: 'F246', l: 'F246 (S0750)' }, { v: 'F250', l: 'F250' },
+			{ v: 'F256', l: 'F256 (S0780)' }, { v: 'F260', l: 'F260' }, { v: 'F266', l: 'F266 (S0810)' },
+			{ v: 'F270', l: 'F270' }, { v: 'F276', l: 'F276 (S0840)' }, { v: 'F280', l: 'F280' },
+			{ v: 'F290', l: 'F290' }, { v: 'F291', l: 'F291 (S0890)' }, { v: 'F300', l: 'F300' },
+			{ v: 'F301', l: 'F301 (S0920)' }, { v: 'F310', l: 'F310' }, { v: 'F311', l: 'F311 (S0950)' },
+			{ v: 'F320', l: 'F320' }, { v: 'F321', l: 'F321 (S0980)' }, { v: 'F330', l: 'F330' },
+			{ v: 'F331', l: 'F331 (S1010)' }, { v: 'F340', l: 'F340' }, { v: 'F341', l: 'F341 (S1040)' },
+			{ v: 'F350', l: 'F350' }, { v: 'F351', l: 'F351 (S1070)' }, { v: 'F360', l: 'F360' },
+			{ v: 'F361', l: 'F361 (S1100)' }, { v: 'F370', l: 'F370' }, { v: 'F371', l: 'F371 (S1130)' },
+			{ v: 'F380', l: 'F380' }, { v: 'F381', l: 'F381 (S1160)' }, { v: 'F390', l: 'F390' },
+			{ v: 'F391', l: 'F391 (S1190)' }, { v: 'F400', l: 'F400' }, { v: 'F401', l: 'F401 (S1220)' },
+			{ v: 'F410', l: 'F410' }, { v: 'F411', l: 'F411 (S1250)' }, { v: 'F430', l: 'F430 (S1310)' },
+			{ v: 'F449', l: 'F449 (S1370)' }, { v: 'F450', l: 'F450' },
+		];
 		const AC_TYPE_POOL = [
 			// [ICAO type, WTC]
 			['B738', 'M'], ['B738', 'M'], ['B738', 'M'], // weighted common types
@@ -1117,7 +1165,7 @@
 			const ac = {
 				id: _acIdCtr++, callsign: generateCallsign(), hdg: rndInt(0, 359), gs: rndInt(280, 550),
 				x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)),
-				fl: FL_LIST[Math.floor(Math.random() * FL_LIST.length)],
+				fl: FL_LIST[Math.floor(Math.random() * FL_LIST.length)].v,
 				type, wtc, lx: 0, ly: 0
 			};
 			aircraft.push(ac); return ac;
@@ -1126,10 +1174,21 @@
 		function removeAcById(id) {
 			const idx = aircraft.findIndex(a => a.id === id); if (idx < 0) return;
 			aircraft.splice(idx, 1);
+
+			// clean up probes
 			for (let i = probes.length - 1; i >= 0; i--) {
-				if (probes[i].ac1 === id || probes[i].ac2 === id) { recycleColour(probes[i].colour); probes.splice(i, 1); }
+				if (probes[i].ac1 === id || probes[i].ac2 === id) {
+					recycleColour(probes[i].colour);
+					probes.splice(i, 1);
+				}
 			}
-			if (selectedAcId === id) selectedAcId = aircraft.length ? aircraft[aircraft.length - 1].id : null;
+
+			// clean up RBLs  ← ADD THESE TWO LINES
+			rblList = rblList.filter(r => r.p1.acId !== id && r.p2.acId !== id);
+			updateRblUI();
+
+			if (selectedAcId === id)
+				selectedAcId = aircraft.length ? aircraft[aircraft.length - 1].id : null;
 			refreshPanel(); updateProbeUI(); draw();
 		}
 		function acToVals(a, b) {
@@ -1145,10 +1204,34 @@
 		let colourPool = [...PROBE_COLOURS], probes = [], probeMode = null, probeBuilding = null, _probeIdCtr = 0;
 		function recycleColour(c) { if (!c) return; colourPool.push(c); colourPool.sort((a, b) => PROBE_COLOURS.indexOf(a) - PROBE_COLOURS.indexOf(b)); }
 		function toggleSepProbe() {
-			if (probeMode) { if (probeBuilding) { recycleColour(probeBuilding.colour || ''); probeBuilding = null; } probeMode = null; }
-			else { if (aircraft.length < 2) { alert('Need at least 2 aircraft.'); return; } probeMode = 'SELECT_1'; }
-			updateProbeUI(); draw();
+			const wasActive = !!probeMode;
+			cancelAllModes();
+			if (!wasActive) {
+				if (aircraft.length < 2) { alert('Need at least 2 aircraft.'); return; }
+				probeMode = 'SELECT_1';
+			}
+			updatePlaceBtns();
+			updateHeadingBtns();
+			updateWpBtns();
+			updateProbeUI();
+			updateRblUI();
+			draw();
 		}
+		/*function toggleSepProbe() {
+			if (probeMode) {
+				if (probeBuilding) {
+					recycleColour(probeBuilding.colour || '');
+					probeBuilding = null;
+				} probeMode = null;
+			} else {
+				if (aircraft.length < 2) {
+					alert('Need at least 2 aircraft.'); return;
+				} probeMode = 'SELECT_1';
+			}
+			updateProbeUI();
+			updateRblUI();
+			draw();
+		}*/
 		function updateProbeUI() {
 			const btn = document.getElementById('sepProbeBtn'), prompt = document.getElementById('probePrompt');
 			if (probeMode === 'SELECT_1') {
@@ -1255,6 +1338,205 @@
 				});
 			}
 			return false;
+		}
+
+		// ── RBL SYSTEM ────────────────────────────────────────────────────────────
+		const MAX_RBLS = 30;
+		const RBL_COLOUR = '#f5c518';
+		let rblList = [], rblMode = null, rblBuilding = null, rblIdCtr = 0;
+		let rblCursorNM = null; // live cursor position in NM during SELECT2
+
+		function toggleRbl() {
+			const wasActive = !!rblMode;
+			cancelAllModes();
+			if (!wasActive) rblMode = 'RBL_SELECT1';
+			updatePlaceBtns();
+			updateHeadingBtns();
+			updateWpBtns();
+			updateProbeUI();
+			updateRblUI();
+			draw();
+		}
+
+		function updateRblUI() {
+			const btn = document.getElementById('rblBtn');
+			const prompt = document.getElementById('rblPrompt');
+			if (!btn || !prompt) return;
+			if (rblMode === 'RBL_SELECT1') {
+				btn.style.background = '#388bfd';
+				prompt.textContent = 'B1: click point 1 (AC or map)';
+			} else if (rblMode === 'RBL_SELECT2') {
+				btn.style.background = '#388bfd';
+				prompt.textContent = 'B2/Ctrl+B1: click point 2';
+			} else {
+				btn.style.background = '#1f6feb';
+				prompt.textContent = rblList.length
+					? `${rblList.length} RBL${rblList.length > 1 ? 's' : ''} active`
+					: '';
+			}
+			_canvas.style.cursor = rblMode || probeMode || placeMode || headingMode || addMode ? 'crosshair' : 'grab';
+		}
+
+		function rblNMFromEvent(e) {
+			// Returns {x, y, acId} — snaps to aircraft within 18px, else raw NM
+			const rect = _canvas.getBoundingClientRect();
+			const px = (e.clientX - rect.left) * _canvas.width / rect.width;
+			const py = (e.clientY - rect.top) * _canvas.height / rect.height;
+			const { toScreen, toNM } = getDrawTransform();
+			let bestId = null, bestD = 18;
+			aircraft.forEach(ac => {
+				const p = toScreen(ac.x, ac.y);
+				const d = Math.hypot(px - p.x, py - p.y);
+				if (d < bestD) { bestD = d; bestId = ac.id; }
+			});
+			if (bestId !== null) {
+				const ac = getAcById(bestId);
+				return { x: ac.x, y: ac.y, acId: bestId };
+			}
+			const nm = toNM(px, py);
+			return { x: nm.x, y: nm.y, acId: null };
+		}
+
+		function calcRblLabel(p1, p2, gs) {
+			// p1/p2: {x, y, acId}; gs: knots of the AC with speed (or null)
+			const dx = p2.x - p1.x, dy = p2.y - p1.y;
+			const dist = Math.hypot(dx, dy);
+			// True bearing then apply MAGVAR
+			let brg = Math.atan2(dx, dy) * 180 / Math.PI - MAGVAR;
+			brg = ((Math.round(brg) % 360) + 360) % 360;
+			const brgStr = String(brg).padStart(3, '0');
+			const distStr = dist.toFixed(1);
+			if (gs && gs > 0) {
+				const totalSec = Math.round((dist / gs) * 3600);
+				const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+				const ss = String(totalSec % 60).padStart(2, '0');
+				return `${brgStr}/${distStr}/${mm}:${ss}`;
+			}
+			return `${brgStr}/${distStr}`;
+		}
+
+		function getRblGs(p1, p2) {
+			// Returns GS of the AC that determines time, or null if neither/both are AC
+			const ac1 = p1.acId !== null ? getAcById(p1.acId) : null;
+			const ac2 = p2.acId !== null ? getAcById(p2.acId) : null;
+			if (ac1 && !ac2) return ac1.gs;
+			if (!ac1 && ac2) return ac2.gs;
+			return null; // both or neither
+		}
+
+		function handleRblLeftClick(e) {
+			if (!rblMode) return false;
+			const pt = rblNMFromEvent(e);
+			if (rblMode === 'RBL_SELECT1') {
+				rblBuilding = { p1: pt };
+				rblMode = 'RBL_SELECT2';
+			} else if (rblMode === 'RBL_SELECT2') {
+				rblBuilding.p1 = pt; // ← overwrite P1 with new click, stay in SELECT2
+			}
+			updateRblUI();
+			draw();
+			return true;
+		}
+
+		function handleRblSecondClick(e) {
+			if (rblMode !== 'RBL_SELECT2') return false;
+			e.preventDefault();
+			const pt = rblNMFromEvent(e);
+			if (rblList.length >= MAX_RBLS) rblList.shift();
+			rblList.push({ id: rblIdCtr++, p1: rblBuilding.p1, p2: pt });
+			rblBuilding = null;
+			rblMode = null;
+			rblCursorNM = null;
+			updateRblUI();
+			draw();
+			return true;
+		}
+
+		function tryRemoveRblByClick(e) {
+			if (!rblList.length) return false;
+			const rect = _canvas.getBoundingClientRect();
+			const mx = (e.clientX - rect.left) * _canvas.width / rect.width;
+			const my = (e.clientY - rect.top) * _canvas.height / rect.height;
+			const { toScreen } = getDrawTransform();
+			const ctx = _canvas.getContext('2d');
+			ctx.font = '11px Verdana';
+			for (const rbl of rblList) {
+				// resolve live positions
+				const ac1 = rbl.p1.acId !== null ? getAcById(rbl.p1.acId) : null;
+				const ac2 = rbl.p2.acId !== null ? getAcById(rbl.p2.acId) : null;
+				const x1 = ac1 ? ac1.x : rbl.p1.x, y1 = ac1 ? ac1.y : rbl.p1.y;
+				const sp = toScreen(x1, y1);
+				const gs = getRblGs(
+					{ x: x1, y: y1, acId: rbl.p1.acId },
+					{ x: ac2 ? ac2.x : rbl.p2.x, y: ac2 ? ac2.y : rbl.p2.y, acId: rbl.p2.acId }
+				);
+				const lbl = calcRblLabel(
+					{ x: x1, y: y1 },
+					{ x: ac2 ? ac2.x : rbl.p2.x, y: ac2 ? ac2.y : rbl.p2.y },
+					gs
+				);
+				const tw = ctx.measureText(lbl).width;
+				const lx = sp.x + 6, ly = sp.y - LINE_H * 2;
+				if (mx >= lx - 3 && mx <= lx + tw + 3 && my >= ly && my <= ly + LINE_H) {
+					rblList = rblList.filter(r => r.id !== rbl.id);
+					updateRblUI();
+					draw();
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function drawRbls(ctx, S) {
+			const RBL_C = '#f5c518';
+			ctx.font = '11px Verdana';
+			ctx.textBaseline = 'top';
+
+			// Draw committed RBLs
+			rblList.forEach(rbl => {
+				const ac1 = rbl.p1.acId !== null ? getAcById(rbl.p1.acId) : null;
+				const ac2 = rbl.p2.acId !== null ? getAcById(rbl.p2.acId) : null;
+				const x1 = ac1 ? ac1.x : rbl.p1.x, y1 = ac1 ? ac1.y : rbl.p1.y;
+				const x2 = ac2 ? ac2.x : rbl.p2.x, y2 = ac2 ? ac2.y : rbl.p2.y;
+				const p1s = S(x1, y1), p2s = S(x2, y2);
+				const gs = getRblGs({ x: x1, y: y1, acId: rbl.p1.acId }, { x: x2, y: y2, acId: rbl.p2.acId });
+				const lbl = calcRblLabel({ x: x1, y: y1 }, { x: x2, y: y2 }, gs);
+				ctx.save();
+				ctx.strokeStyle = RBL_C;
+				ctx.lineWidth = 1.5;
+				ctx.beginPath(); ctx.moveTo(p1s.x, p1s.y); ctx.lineTo(p2s.x, p2s.y); ctx.stroke();
+				// dot at each end
+				ctx.fillStyle = RBL_C;
+				ctx.beginPath(); ctx.arc(p1s.x, p1s.y, 3, 0, 2 * Math.PI); ctx.fill();
+				ctx.beginPath(); ctx.arc(p2s.x, p2s.y, 3, 0, 2 * Math.PI); ctx.fill();
+				// label top-right of P1
+				ctx.fillStyle = RBL_C;
+				ctx.fillText(lbl, p1s.x + 6, p1s.y - LINE_H * 2);
+				ctx.restore();
+			});
+
+			// Draw rubber-band during SELECT2
+			if (rblMode === 'RBL_SELECT2' && rblBuilding && rblCursorNM) {
+				const ac1 = rblBuilding.p1.acId !== null ? getAcById(rblBuilding.p1.acId) : null;
+				const x1 = ac1 ? ac1.x : rblBuilding.p1.x, y1 = ac1 ? ac1.y : rblBuilding.p1.y;
+				const p1s = S(x1, y1);
+				const p2s = S(rblCursorNM.x, rblCursorNM.y);
+				const gs = getRblGs({ x: x1, y: y1, acId: rblBuilding.p1.acId }, { ...rblCursorNM, acId: rblCursorNM.acId });
+				const lbl = calcRblLabel({ x: x1, y: y1 }, rblCursorNM, gs);
+				ctx.save();
+				ctx.strokeStyle = RBL_C;
+				ctx.lineWidth = 1.5;
+				ctx.setLineDash([4, 4]);
+				ctx.globalAlpha = 0.7;
+				ctx.beginPath(); ctx.moveTo(p1s.x, p1s.y); ctx.lineTo(p2s.x, p2s.y); ctx.stroke();
+				ctx.setLineDash([]);
+				ctx.globalAlpha = 1;
+				ctx.fillStyle = RBL_C;
+				ctx.beginPath(); ctx.arc(p1s.x, p1s.y, 3, 0, 2 * Math.PI); ctx.fill();
+				ctx.fillText(lbl, p1s.x + 6, p1s.y - LINE_H * 2);
+				ctx.restore();
+			}
+			ctx.textBaseline = 'alphabetic';
 		}
 
 		// ── WAYPOINT & AIRWAY DATA ─────────────────────────────────────────────────
@@ -1915,7 +2197,7 @@
 					addMode = false;
 					updateAddBtn();
 					updateWpBtns();
-					canvas.style.cursor = 'grab';
+					_canvas.style.cursor = 'grab';
 					refreshPanel();
 					draw();
 				}
@@ -1925,8 +2207,30 @@
 			const ac = getAcById(selectedAcId); if (!ac) return;
 			ac.x = wp.x; ac.y = wp.y; placeMode = null; updatePlaceBtns(); updateWpBtns(); _canvas.style.cursor = 'grab'; refreshPanelFields(); draw();
 		}
-		function setPlaceMode(m) { placeMode = (placeMode === m) ? null : m; if (placeMode) { headingMode = null; addMode = false; updateHeadingBtns(); updateAddBtn(); } updatePlaceBtns(); updateWpBtns(); _canvas.style.cursor = placeMode ? 'crosshair' : 'grab'; }
-		function setHeadingMode(m) { headingMode = (headingMode === m) ? null : m; if (headingMode) { placeMode = null; addMode = false; updatePlaceBtns(); updateAddBtn(); } updateHeadingBtns(); updateWpBtns(); _canvas.style.cursor = headingMode ? 'crosshair' : 'grab'; }
+		function setPlaceMode(m) {
+			const wasActive = placeMode === m;
+			cancelAllModes();
+			if (!wasActive) placeMode = m;
+			updatePlaceBtns();
+			updateHeadingBtns();
+			updateAddBtn();
+			updateWpBtns();
+			updateProbeUI();
+			updateRblUI();
+			canvas.style.cursor = placeMode ? 'crosshair' : 'grab';
+		}
+		function setHeadingMode(m) {
+			const wasActive = headingMode === m;
+			cancelAllModes();
+			if (!wasActive) headingMode = m;
+			updatePlaceBtns();
+			updateHeadingBtns();
+			updateAddBtn();
+			updateWpBtns();
+			updateProbeUI();
+			updateRblUI();
+			canvas.style.cursor = headingMode ? 'crosshair' : 'grab';
+		}
 		function updatePlaceBtns() { const hasAc = aircraft.length > 0; const b = document.getElementById('placeBtnSel'); if (!b) return; b.disabled = !hasAc; b.style.opacity = hasAc ? '1' : '0.35'; b.style.cursor = hasAc ? 'pointer' : 'not-allowed'; b.classList.toggle('place-active', placeMode === 'SEL'); b.textContent = placeMode === 'SEL' ? '✈︎ Placing…' : '✈︎ Place Selected'; }
 		function updateHeadingBtns() { const hasAc = aircraft.length > 0; const b = document.getElementById('hdgBtnSel'); if (!b) return; b.disabled = !hasAc; b.style.opacity = hasAc ? '1' : '0.35'; b.style.cursor = hasAc ? 'pointer' : 'not-allowed'; b.classList.toggle('place-active', headingMode === 'SEL'); b.textContent = headingMode === 'SEL' ? '𖦏 Aiming…' : '𖦏 Aim Selected'; }
 		let showWpNames = false;
@@ -1934,19 +2238,42 @@
 		function updateWpBtns() { const active = placeMode || headingMode || addMode; document.querySelectorAll('.wp-btn').forEach(b => { b.style.cursor = active ? 'pointer' : 'not-allowed'; b.style.opacity = active ? '1' : '0.5'; }); }
 		let draggingLabelAc = null, labelDragStartX = 0, labelDragStartY = 0, labelDragOriginX = 0, labelDragOriginY = 0;
 		const LABEL_MAX_DIST = 120;
+		function cancelAllModes() {
+			// Place / Aim
+			placeMode = null;
+			headingMode = null;
+			document.getElementById('placeBtnSel').style.background = '#21262d';
+			document.getElementById('hdgBtnSel').style.background = '#21262d';
+
+			// Add aircraft
+			addMode = false;
+			document.getElementById('addAcBtn').style.background = '#238636';
+			document.getElementById('addAcBtn').style.borderColor = '#2ea043';
+
+			// Sep probe
+			if (probeBuilding) { recycleColour(probeBuilding.colour); probeBuilding = null; }
+			probeMode = null;
+
+			// RBL
+			rblBuilding = null;
+			rblMode = null;
+			rblCursorNM = null;
+		}
 
 
 		// ── UI SYNC ──────────────────────────────────────────────────────────────
 		function populateFlDropdown() {
-			const sel = document.getElementById('fl_sel');
-			if (!sel || sel.options.length > 0) return;
-			FL_LIST.forEach(fl => {
-				const o = document.createElement('option'); o.value = o.textContent = fl; sel.appendChild
-					(o);
+			const flSel = document.getElementById('fl_sel');
+			if (!flSel) return;
+			flSel.innerHTML = '';
+			FL_LIST.forEach(f => {
+				const opt = document.createElement('option');
+				opt.value = f.v;
+				opt.textContent = f.l;
+				flSel.appendChild(opt);
 			});
 		}
 		function refreshPanel() {
-			populateFlDropdown();
 			const dd = document.getElementById('acSelect');
 			const badge = document.getElementById('acBadge');
 			const hint = document.getElementById('noAcHint');
@@ -1980,7 +2307,6 @@
 				if (fields) fields.style.display = '';
 				refreshPanelFields();
 			}
-
 			updateAddBtn();
 			updatePlaceBtns();
 			updateHeadingBtns();
@@ -2021,10 +2347,19 @@
 			if (field === 'hdg') drawCompass('_sel'); draw();
 		}
 		function toggleAddMode() {
-			if (!addMode && aircraft.length >= MAX_AC) { alert('Maximum 50 aircraft on map.'); return; }
-			addMode = !addMode;
-			if (addMode) { placeMode = null; headingMode = null; updatePlaceBtns(); updateHeadingBtns(); }
-			updateAddBtn(); _canvas.style.cursor = addMode ? 'crosshair' : 'grab'; updateWpBtns();
+			const wasActive = addMode;
+			cancelAllModes();
+			if (!wasActive) {
+				if (aircraft.length >= MAX_AC) { alert('Maximum 50 aircraft on map.'); return; }
+				addMode = true;
+			}
+			updateAddBtn();
+			updatePlaceBtns();
+			updateHeadingBtns();
+			updateWpBtns();
+			updateProbeUI();
+			updateRblUI();
+			canvas.style.cursor = addMode ? 'crosshair' : 'grab';
 		}
 		function updateAddBtn() {
 			const btn = document.getElementById('addAcBtn'); if (!btn) return;
@@ -2036,8 +2371,10 @@
 			if (!confirm('Confirm reset to default? All aircrafts will be removed.')) return;
 			aircraft = []; selectedAcId = null; probes = []; colourPool = [...PROBE_COLOURS];
 			probeMode = null; probeBuilding = null; placeMode = null; headingMode = null; addMode = false;
-			offsetX = 0; offsetY = 0; setGridSize(50);
-			refreshPanel(); updateProbeUI(); updatePlaceBtns(); updateHeadingBtns(); updateAddBtn(); updateWpBtns(); draw();
+			offsetX = 0; offsetY = 0; rblList = [];
+			rblBuilding = null; rblMode = null; rblCursorNM = null;
+			updateRblUI(); setGridSize(50); refreshPanel(); updateProbeUI();
+			updatePlaceBtns(); updateHeadingBtns(); updateAddBtn(); updateWpBtns(); draw();
 		}
 
 		// ── CANVAS INTERACTION ──────────────────────────────────
@@ -2104,12 +2441,14 @@
 				}
 
 				// Missed all data blocks (or activePointers > 0) — try probe actions
-				if (probeMode === 'SELECT_2') {
+				if (rblMode === 'RBL_SELECT2') {
+					handleRblSecondClick(e);
+				} else if (probeMode === 'SELECT_2') {
 					handleProbeMiddleClick(e);
 				} else {
 					tryRemoveProbeByDataBlockClick(e);
+					tryRemoveRblByClick(e);
 				}
-				return;
 			}
 
 			// ── NORMAL LEFT CLICK — pan / add / place / probe ──────────────
@@ -2134,6 +2473,29 @@
 		}, { passive: false });
 
 		canvasEl.addEventListener('pointermove', e => {
+
+			// At the very top of pointermove, before label drag check:
+			if (rblMode === 'RBL_SELECT2') {
+				const rect = _canvas.getBoundingClientRect();
+				const px = (e.clientX - rect.left) * _canvas.width / rect.width;
+				const py = (e.clientY - rect.top) * _canvas.height / rect.height;
+				const { toScreen, toNM } = getDrawTransform();
+				let bestId = null, bestD = 18;
+				aircraft.forEach(ac => {
+					const p = toScreen(ac.x, ac.y);
+					const d = Math.hypot(px - p.x, py - p.y);
+					if (d < bestD) { bestD = d; bestId = ac.id; }
+				});
+				if (bestId !== null) {
+					const ac = getAcById(bestId);
+					rblCursorNM = { x: ac.x, y: ac.y, acId: bestId };
+				} else {
+					const nm = toNM(px, py);
+					rblCursorNM = { x: nm.x, y: nm.y, acId: null };
+				}
+				draw();
+			}
+
 			// Label drag
 			if (draggingLabelAc) {
 				const dx = e.clientX - labelDragStartX;
@@ -2205,6 +2567,7 @@
 			if (moved >= 5) return; // was a pan drag
 
 			if (e.button === 0) {
+				if (handleRblLeftClick(e)) return;
 				if (handleProbeLeftClick(e)) return; // consumed by probe flow
 				canvasClickPlace(e);                 // add aircraft / place / aim heading
 			}
@@ -2358,8 +2721,24 @@
 			const m = document.getElementById('acContextMenu');
 			if (m && m.style.display === 'block' && !m.contains(e.target)) _hideCtxMenu();
 		});
-		document.addEventListener('keydown', e => { if (e.key === 'Escape') _hideCtxMenu(); });
-		window.addEventListener('load', function () { populateFlDropdown(); refreshPanel(); autoFit(); draw(); });
+		document.addEventListener('keydown', e => {
+			if (e.key === 'Escape') {
+				_hideCtxMenu();
+				if (rblMode) {
+					rblBuilding = null;
+					rblMode = null;
+					rblCursorNM = null;
+					updateRblUI();
+					draw();
+				}
+			}
+		});
+		window.addEventListener('load', function () {
+			populateFlDropdown();
+			refreshPanel();
+			autoFit();
+			draw();
+		});
 		window.addEventListener('resize', draw);
 
 		// ── CSV EXPORT ───────────────────────────────────────────
@@ -2444,7 +2823,11 @@
 				probeMode = null;
 				selectedAcId = null;
 				aircraft.push(...newAircraft);
-
+				rblList = [];
+				rblBuilding = null;
+				rblMode = null;
+				rblCursorNM = null;
+				updateRblUI();
 				refreshPanel();
 				updateProbeUI();
 				draw();
