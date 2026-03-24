@@ -1151,9 +1151,17 @@
 		}
 		function updateProbeUI() {
 			const btn = document.getElementById('sepProbeBtn'), prompt = document.getElementById('probePrompt');
-			if (probeMode === 'SELECT_1') { btn.style.background = '#388bfd'; prompt.textContent = 'Click AC1'; }
-			else if (probeMode === 'SELECT_2') { btn.style.background = '#388bfd'; const a = getAcById(probeBuilding.ac1); prompt.innerHTML = '✅ ' + (a ? a.callsign : 'AC1') + ' | Middle or Ctrl+click AC2'; }
-			else { btn.style.background = '#1f6feb'; prompt.textContent = probes.length ? probes.length + ' probe' + (probes.length > 1 ? 's' : '') + ' active' : ''; }
+			if (probeMode === 'SELECT_1') {
+				btn.style.background = '#388bfd';
+				prompt.textContent = 'B1 click AC1';
+			} else if (probeMode === 'SELECT_2') {
+				btn.style.background = '#388bfd';
+				const a = getAcById(probeBuilding.ac1);
+				prompt.innerHTML = '✅ ' + (a ? a.callsign : 'AC1') + ' | B2 / Ctrl + B1 click AC2';
+			} else {
+				btn.style.background = '#1f6feb';
+				prompt.textContent = probes.length ? probes.length + ' probe' + (probes.length > 1 ? 's' : '') + ' active' : '';
+			}
 			_canvas.style.cursor = (probeMode || placeMode || headingMode || addMode) ? 'crosshair' : 'grab';
 		}
 		function findClickedAc(e) {
