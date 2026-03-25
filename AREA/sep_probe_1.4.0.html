@@ -1240,7 +1240,7 @@
 			} else if (probeMode === 'SELECT_2') {
 				btn.style.background = '#388bfd';
 				const a = getAcById(probeBuilding.ac1);
-				prompt.innerHTML = '✅ ' + (a ? a.callsign : 'AC1') + ' | B2 / Ctrl + B1 click AC2';
+				prompt.innerHTML = '✅ ' + (a ? a.callsign : 'AC1') + ' | B2 / Shift + B1 click AC2';
 			} else {
 				btn.style.background = '#1f6feb';
 				prompt.textContent = probes.length ? probes.length + ' probe' + (probes.length > 1 ? 's' : '') + ' active' : '';
@@ -1367,7 +1367,7 @@
 				prompt.textContent = 'B1: click point 1 (AC or map)';
 			} else if (rblMode === 'RBL_SELECT2') {
 				btn.style.background = '#388bfd';
-				prompt.textContent = 'B2/Ctrl+B1: click point 2';
+				prompt.textContent = 'B2/Shift+B1: click point 2';
 			} else {
 				btn.style.background = '#1f6feb';
 				prompt.textContent = rblList.length
@@ -2383,9 +2383,9 @@
 		let isDragging_click = false, _mouseDownX = 0, _mouseDownY = 0;
 
 		canvasEl.addEventListener('pointerdown', e => {
-			const isSpecialClick = (e.button === 1) || (e.button === 0 && e.ctrlKey);
+			const isSpecialClick = (e.button === 1) || (e.button === 0 && e.shiftKey);
 
-			// ── MIDDLE / CTRL+LEFT — label drag OR probe removal ──────────────
+			// ── MIDDLE / Shift+LEFT — label drag OR probe removal ──────────────
 			if (isSpecialClick) {
 				e.preventDefault();
 
@@ -2548,8 +2548,8 @@
 				return;
 			}
 
-			// Ctrl+left — probe AC2 select OR probe removal (no drag guard needed)
-			if (e.button === 0 && e.ctrlKey) {
+			// Shift+left — probe AC2 select OR probe removal (no drag guard needed)
+			if (e.button === 0 && e.shiftKey) {
 				activePointers.delete(e.pointerId);
 				if (activePointers.size === 0) { isDragging = false; lastTouchDist = null; }
 				if (probeMode === 'SELECT_2') {
