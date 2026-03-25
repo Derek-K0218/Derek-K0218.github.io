@@ -544,6 +544,28 @@
 									max="550" value="350" oninput="updateAcN('gs',this.value,280,550,350)"></div>
 							<div style="font-size:0.7rem;color:#8b949e;margin-top:3px;">knots (280–550)</div>
 						</div>
+						<div class="field">
+							<span class="lbl">Mach Number</span>
+							<div class="row">
+								<input type="range" id="machsl" min="0.60" max="0.99" step="0.01" value="0.82"
+									oninput="updateAcMach(this.value)">
+								<input type="number" id="machn" min="0.60" max="0.99" step="0.01" value="0.82"
+									oninput="updateAcMachN(this.value)"
+									style="width:72px;background:#21262d;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:0.78rem;font-weight:600;padding:3px 6px;text-align:right;">
+							</div>
+							<div style="font-size:0.7rem;color:#8b949e;margin-top:3px;">range 0.60 – 0.99</div>
+						</div>
+						<div class="field">
+							<span class="lbl">Derived Speeds</span>
+							<div style="display:flex;gap:10px;font-size:0.78rem;font-weight:600;margin-top:2px;">
+								<span style="color:#8b949e;">TAS:</span>
+								<span id="tasDisplay" style="color:#e6edf3;">--- kt</span>
+								<span style="color:#8b949e;margin-left:8px;">IAS:</span>
+								<span id="iasDisplay" style="color:#e6edf3;">--- kt</span>
+							</div>
+							<div style="font-size:0.68rem;color:#484f58;margin-top:3px;">TAS = GS (no wind model)</div>
+						</div>
+
 						<div class="field" style="display:none"><span class="lbl">Position X (East/West NM)</span>
 							<div class="row"><input type="range" id="x_sl" min="-300" max="300" value="0"
 									oninput="updateAc('x',this.value)">
@@ -805,6 +827,36 @@
 		const TMarc_radiusNM = 86.068;
 
 		let _lastMidX = 0, _lastMidY = 0, _lastScale = 1, _lastW = 0, _lastH = 0;
+
+		// ── ISA / MACH ENGINE ─────────────────────────────────────────────────────
+		function flToAltFt(flStr) {
+			// e.g. "F350" → 35000
+			return parseInt(flStr.replace('F', '')) * 100;
+		}
+
+		function isaTemp(altFt) {
+			// Returns temperature in Kelvin
+			if (altFt <= 36089) return 288.15 - 0.001981 * altFt;
+			return 216.65; // tropopause and above
+		}
+
+		function pressureRatioDelta(altFt) {
+			if (altFt <= 36089) {
+				const T = isaTemp(altFt);
+				return Math.pow(T / 288.15, 5.2561);
+			}
+			return 0.22336 * Math.exp(-0.0000480634 * (altFt - 36089));
+		}
+
+		function machToSpeeds(mach, flStr) {
+			const altFt = flToAltFt(flStr);
+			const T = isaTemp(altFt);
+			const a = 38.967 * Math.sqrt(T);          // speed of sound in knots
+			const tas = Math.round(mach * a);
+			const delta = pressureRatioDelta(altFt);
+			const ias = Math.round(tas * Math.sqrt(delta));
+			return { tas, ias };
+		}
 
 		function panByPixels(dx, dy) {
 			offsetX -= dx / _lastScale;
@@ -1166,7 +1218,7 @@
 				id: _acIdCtr++, callsign: generateCallsign(), hdg: rndInt(0, 359), gs: rndInt(280, 550),
 				x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)),
 				fl: FL_LIST[Math.floor(Math.random() * FL_LIST.length)].v,
-				type, wtc, lx: 0, ly: 0
+				type, wtc, lx: 0, ly: 0, mach: null
 			};
 			aircraft.push(ac); return ac;
 		}
@@ -2217,7 +2269,7 @@
 			updateWpBtns();
 			updateProbeUI();
 			updateRblUI();
-			canvas.style.cursor = placeMode ? 'crosshair' : 'grab';
+			_canvas.style.cursor = placeMode ? 'crosshair' : 'grab';
 		}
 		function setHeadingMode(m) {
 			const wasActive = headingMode === m;
@@ -2229,7 +2281,7 @@
 			updateWpBtns();
 			updateProbeUI();
 			updateRblUI();
-			canvas.style.cursor = headingMode ? 'crosshair' : 'grab';
+			_canvas.style.cursor = headingMode ? 'crosshair' : 'grab';
 		}
 		function updatePlaceBtns() { const hasAc = aircraft.length > 0; const b = document.getElementById('placeBtnSel'); if (!b) return; b.disabled = !hasAc; b.style.opacity = hasAc ? '1' : '0.35'; b.style.cursor = hasAc ? 'pointer' : 'not-allowed'; b.classList.toggle('place-active', placeMode === 'SEL'); b.textContent = placeMode === 'SEL' ? '✈︎ Placing…' : '✈︎ Place Selected'; }
 		function updateHeadingBtns() { const hasAc = aircraft.length > 0; const b = document.getElementById('hdgBtnSel'); if (!b) return; b.disabled = !hasAc; b.style.opacity = hasAc ? '1' : '0.35'; b.style.cursor = hasAc ? 'pointer' : 'not-allowed'; b.classList.toggle('place-active', headingMode === 'SEL'); b.textContent = headingMode === 'SEL' ? '𖦏 Aiming…' : '𖦏 Aim Selected'; }
@@ -2327,25 +2379,102 @@
 			const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
 			set('hdg_sel', ac.hdg); set('gs_sl', ac.gs); set('gs_n', ac.gs);
 			set('x_sl', ac.x); set('x_n', ac.x); set('y_sl', ac.y); set('y_n', ac.y); set('fl_sel', ac.fl);
+			if (ac.mach !== null && ac.mach !== undefined) {
+				document.getElementById('machsl').value = ac.mach;
+				document.getElementById('machn').value = ac.mach;
+				const { tas, ias } = machToSpeeds(ac.mach, ac.fl);
+				document.getElementById('tasDisplay').textContent = `${tas} kt`;
+				document.getElementById('iasDisplay').textContent = `${ias} kt`;
+			} else {
+				document.getElementById('machsl').value = 0.82;
+				document.getElementById('machn').value = 0.82;
+				document.getElementById('tasDisplay').textContent = '--- kt';
+				document.getElementById('iasDisplay').textContent = '--- kt';
+			}
 			drawCompass('_sel');
 		}
 		function updateAc(field, val) {
-			const ac = getAcById(selectedAcId); if (!ac) return;
-			if (field === 'fl') { ac.fl = val; }
-			else {
-				const v = parseFloat(val); ac[field] = (field === 'x' || field === 'y') ? parseFloat(v.toFixed(2)) : Math.round(v);
-				const mirror = { gs: 'gs_n', x: 'x_n', y: 'y_n' }; if (mirror[field]) { const el = document.getElementById(mirror[field]); if (el) el.value = ac[field]; }
+			const ac = getAcById(selectedAcId);
+			if (!ac) return;
+			if (field === 'fl') {
+				ac.fl = val;
+				refreshMachDisplay();
+			} else {
+				const v = parseFloat(val);
+				ac[field] = (field === 'x' || field === 'y') ? parseFloat(v.toFixed(2)) : Math.round(v);
+				const mirror = { gs: 'gs_n', x: 'x_n', y: 'y_n' }; if (mirror[field]) {
+					const el = document.getElementById(mirror[field]);
+					if (el) el.value = ac[field];
+				}
 				if (field === 'hdg') drawCompass('_sel');
+				if (field === 'gs') {
+					ac.mach = null;
+					document.getElementById('tasDisplay').textContent = '--- kt';
+					document.getElementById('iasDisplay').textContent = '--- kt';
+				}
 			}
 			draw();
 		}
 		function updateAcN(field, val, mn, mx, def) {
-			const ac = getAcById(selectedAcId); if (!ac) return;
+			const ac = getAcById(selectedAcId);
+			if (!ac) return;
 			const v = Math.max(mn, Math.min(mx, parseFloat(val) || def));
 			ac[field] = (field === 'x' || field === 'y') ? parseFloat(v.toFixed(2)) : Math.round(v);
-			const mirror = { gs: 'gs_sl', x: 'x_sl', y: 'y_sl' }; if (mirror[field]) { const el = document.getElementById(mirror[field]); if (el) el.value = ac[field]; }
-			if (field === 'hdg') drawCompass('_sel'); draw();
+			const mirror = { gs: 'gs_sl', x: 'x_sl', y: 'y_sl' };
+			if (mirror[field]) {
+				const el = document.getElementById(mirror[field]);
+				if (el) el.value = ac[field];
+			}
+			if (field === 'hdg') drawCompass('_sel');
+			if (field === 'gs') {
+				document.getElementById('tasDisplay').textContent = '--- kt';
+				document.getElementById('iasDisplay').textContent = '--- kt';
+			}
+			draw();
 		}
+		function refreshMachDisplay() {
+			const machn = document.getElementById('machn');
+			if (!machn) return;
+			const mach = parseFloat(machn.value);
+			if (isNaN(mach)) return;
+			const ac = getAcById(selectedAcId);
+			if (!ac) return;
+			const { tas, ias } = machToSpeeds(mach, ac.fl);
+			document.getElementById('tasDisplay').textContent = `${tas} kt`;
+			document.getElementById('iasDisplay').textContent = `${ias} kt`;
+			// Also push TAS into GS
+			const gsVal = clamp(tas, 280, 550);
+			ac.gs = gsVal;
+			document.getElementById('gs_sl').value = gsVal;
+			document.getElementById('gs_n').value = gsVal;
+		}
+		function updateAcMach(val) {
+			const mach = parseFloat(val);
+			if (isNaN(mach)) return;
+			const clamped = clamp(mach, 0.60, 0.99);
+			document.getElementById('machsl').value = clamped;
+			document.getElementById('machn').value = clamped;
+
+			const ac = getAcById(selectedAcId);
+			if (!ac) return;
+			ac.mach = clamped;
+
+			const { tas, ias } = machToSpeeds(clamped, ac.fl);
+			// GS = TAS (no wind model)
+			const gsVal = clamp(tas, 280, 550);
+			ac.gs = gsVal;
+			document.getElementById('gs_sl').value = gsVal;
+			document.getElementById('gs_n').value = gsVal;
+			document.getElementById('tasDisplay').textContent = `${tas} kt`;
+			document.getElementById('iasDisplay').textContent = `${ias} kt`;
+			draw();
+		}
+		function updateAcMachN(val) {
+			const mach = parseFloat(val);
+			if (isNaN(mach)) return;
+			updateAcMach(clamp(mach, 0.60, 0.99));
+		}
+
 		function toggleAddMode() {
 			const wasActive = addMode;
 			cancelAllModes();
@@ -2359,7 +2488,7 @@
 			updateWpBtns();
 			updateProbeUI();
 			updateRblUI();
-			canvas.style.cursor = addMode ? 'crosshair' : 'grab';
+			_canvas.style.cursor = addMode ? 'crosshair' : 'grab';
 		}
 		function updateAddBtn() {
 			const btn = document.getElementById('addAcBtn'); if (!btn) return;
@@ -2745,17 +2874,20 @@
 		function exportScenarioCSV() {
 			if (!aircraft.length) { alert('No aircraft on map.'); return; }
 
-			const headers = ['callsign', 'hdg', 'gs', 'x', 'y', 'fl', 'type', 'wtc'];
-			const rows = aircraft.map(ac =>
-				[ac.callsign, ac.hdg, ac.gs, ac.x, ac.y, ac.fl, ac.type, ac.wtc].join(',')
-			);
-			const csv = [headers.join(','), ...rows].join('\n');
+			const header = 'callsign,type,wtc,fl,speed_mode,speed_val,hdg,x,y';
 
+			const rows = aircraft.map(ac => {
+				const speedMode = (ac.mach !== null && ac.mach !== undefined) ? 'M' : 'GS';
+				const speedVal = (ac.mach !== null && ac.mach !== undefined) ? ac.mach : ac.gs;
+				return `${ac.callsign},${ac.type},${ac.wtc},${ac.fl},${speedMode},${speedVal},${ac.hdg},${ac.x},${ac.y}`;
+			});
+
+			const csv = [header, ...rows].join('\n');
 			const blob = new Blob([csv], { type: 'text/csv' });
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `sep_probe_scenario_${Date.now()}.csv`;
+			a.download = `sepprobescenario_${Date.now()}.csv`;
 			a.click();
 			URL.revokeObjectURL(url);
 		}
@@ -2784,10 +2916,36 @@
 
 				dataLines.forEach((line, i) => {
 					const parts = line.split(',').map(s => s.trim());
-					if (parts.length < 6) { errors.push(`Row ${i + 2}: not enough columns`); return; }
 
-					const [callsign, hdg, gs, x, y, fl, csvType, csvWtc] = parts;
-					const [type, wtc] = (csvType && csvWtc) ? [csvType, csvWtc] : randomAcType();
+					// Detect format: new = has speed_mode col (M or GS) at index 4
+					const isNewFormat = parts[4] === 'M' || parts[4] === 'GS';
+
+					let callsign, hdg, x, y, fl, csvType, csvWtc, gs, mach;
+
+					if (isNewFormat) {
+						// new: callsign, type, wtc, fl, speed_mode, speed_val, hdg, x, y
+						if (parts.length < 9) { errors.push(`Row ${i + 2}: not enough columns`); return; }
+						[callsign, csvType, csvWtc, fl] = parts;
+						const speedMode = parts[4];
+						const speedVal = parseFloat(parts[5]);
+						hdg = parts[6]; x = parts[7]; y = parts[8];
+						[csvType, csvWtc] = (csvType && csvWtc) ? [csvType, csvWtc] : randomAcType();
+						if (speedMode === 'M') {
+							mach = speedVal;
+							const { tas } = machToSpeeds(mach, fl);
+							gs = clamp(tas, 280, 550);
+						} else {
+							mach = null;
+							gs = speedVal;
+						}
+					} else {
+						// old: callsign, hdg, gs, x, y, fl, type, wtc
+						if (parts.length < 6) { errors.push(`Row ${i + 2}: not enough columns`); return; }
+						[callsign, hdg, , x, y, fl, csvType, csvWtc] = parts;
+						gs = parseFloat(parts[2]);
+						mach = null;
+						[csvType, csvWtc] = (csvType && csvWtc) ? [csvType, csvWtc] : randomAcType();
+					}
 					const hdgN = parseFloat(hdg);
 					const gsN = parseFloat(gs);
 					const xN = parseFloat(x);
@@ -2802,8 +2960,8 @@
 					if (newAircraft.length >= MAX_AC) { errors.push(`Row ${i + 2}: max ${MAX_AC} aircraft exceeded`); return; }
 
 					newAircraft.push({
-						id: _acIdCtr++, callsign, hdg: hdgN, gs: gsN,
-						x: xN, y: yN, fl, type, wtc, lx: 0, ly: 0
+						id: _acIdCtr++, callsign, hdg: hdgN, gs: gsN, mach,
+						x: xN, y: yN, fl, type: csvType, wtc: csvWtc, lx: 0, ly: 0
 					});
 				});
 
@@ -2819,23 +2977,14 @@
 				aircraft.length = 0;
 				probes.length = 0;
 				colourPool = [...PROBE_COLOURS];
-				probeBuilding = null;
-				probeMode = null;
-				selectedAcId = null;
+				probeBuilding = null; probeMode = null; selectedAcId = null;
 				aircraft.push(...newAircraft);
-				rblList = [];
-				rblBuilding = null;
-				rblMode = null;
-				rblCursorNM = null;
-				updateRblUI();
-				refreshPanel();
-				updateProbeUI();
-				draw();
+				rblList = []; rblBuilding = null; rblMode = null; rblCursorNM = null;
+				updateRblUI(); refreshPanel(); updateProbeUI(); draw();
 				alert(`✓ Imported ${newAircraft.length} aircraft.`);
 			};
 			reader.readAsText(file);
 		}
-
 	</script>
 </body>
 
