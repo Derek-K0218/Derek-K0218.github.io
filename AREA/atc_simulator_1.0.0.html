@@ -78,7 +78,7 @@
 
 			.controls {
 				order: 0;
-				width: 480px;
+				width: 410px;
 				flex: none;
 				border-top: none;
 				border-right: 1px solid #21262d;
@@ -963,7 +963,7 @@
 				</div>
 			</div>
 
-			<div class="grid-panel">
+			<div class="grid-panel"  id="ScenarioPanel">
 				<h3>SCENARIO GENERATOR</h3>
 				<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
 					<label style="font-size:0.73rem;color:#8b949e;white-space:nowrap;">Aircraft count</label>
@@ -1702,8 +1702,10 @@
 			// Hide setup panels while sim is running
 			const acPanel = document.getElementById('acPanel');
 			const placePanel = document.getElementById('placePanel');
+			const scenarioPanel = document.getElementById('ScenarioPanel');
 			if (acPanel) acPanel.style.display = simRunning ? 'none' : '';
 			if (placePanel) placePanel.style.display = simRunning ? 'none' : '';
+			if (scenarioPanel) scenarioPanel.style.display = simRunning ? 'none' : '';
 		}
 
 		function toggleSim() {
