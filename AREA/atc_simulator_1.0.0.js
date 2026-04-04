@@ -1329,9 +1329,11 @@ function handleChdKey(e, acId) {
 
 // Cleared Speed Pop-up
 let spdPopupMach = true; // local state for M button
+let spdPopupSign = null;
 
 function openSpdPopup(ac, screenX, screenY) {
-	spdPopupMach = (ac.altFt >= 30000);
+	spdPopupMach = ac.altFt >= 30000;
+	spdPopupSign = ac.spdSign ?? null;       // seed from aircraft
 	renderSpdPopup(ac, screenX, screenY);
 }
 
@@ -1357,21 +1359,30 @@ function renderSpdPopup(ac, screenX, screenY) {
                 </div>`;
 	}).join('');
 
+	const plusActive = spdPopupSign === '+';
+    const minusActive = spdPopupSign === '-';
+
 	const html = `
-        <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;width:70px;
-                    font-size:0.75rem;letter-spacing:1px;text-align:center;">${ac.callsign}</div>
-        <div id="spdList" style="max-height:100px;overflow-y:auto;margin-bottom:6px;width:70px;
-                    border:1px solid #30363d;border-radius:4px;padding:2px;">
-            ${items}
-        </div>
-        <div style="display:flex;gap:4px;margin-bottom:6px;width:70px;">
-            <button onclick="spdPopupAdjust(${ac.id},1)"
-                style="flex:1;padding:4px;background:#21262d;border:1px solid #30363d;
-                       border-radius:4px;color:#e6edf3;cursor:pointer;font-weight:700;">+</button>
-            <button onclick="spdPopupAdjust(${ac.id},-1)"
-                style="flex:1;padding:4px;background:#21262d;border:1px solid #30363d;
-                       border-radius:4px;color:#e6edf3;cursor:pointer;font-weight:700;">−</button>
-        </div>
+      <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;width:70px;
+                  font-size:0.75rem;letter-spacing:1px;text-align:center;">
+        ${ac.callsign}
+      </div>
+      <div id="spdList" style="max-height:100px;overflow-y:auto;margin-bottom:6px;width:70px;
+                               border:1px solid #30363d;border-radius:4px;padding:2px;">
+        ${items}
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:6px;width:70px;">
+        <button onclick="toggleSpdSign(${ac.id}, '+')"
+                style="flex:1;padding:4px;background:#21262d;border:1px solid ${
+                    plusActive ? '#58a6ff' : '#30363d'
+                };border-radius:4px;color:${plusActive ? '#58a6ff' : '#e6edf3'};
+                       cursor:pointer;font-weight:700;">+</button>
+        <button onclick="toggleSpdSign(${ac.id}, '-')"
+                style="flex:1;padding:4px;background:#21262d;border:1px solid ${
+                    minusActive ? '#58a6ff' : '#30363d'
+                };border-radius:4px;color:${minusActive ? '#f78166' : '#e6edf3'};
+                       cursor:pointer;font-weight:700;">−</button>
+      </div>
 		<div style="display:flex;gap:4px;margin-bottom:6px;width:70px;">
 			<button id="spdMBtn" onclick="spdPopupToggleMach(${ac.id},${screenX},${screenY})"
                 style="flex:1;padding:4px;background:${isMach ? '#1f6feb' : '#21262d'};
@@ -1400,6 +1411,21 @@ function renderSpdPopup(ac, screenX, screenY) {
 	}, 30);
 }
 
+function toggleSpdSign(acId, sign) {
+	// Off ↔ this sign; only one active
+	if (spdPopupSign === sign) {
+		spdPopupSign = null;
+	} else {
+		spdPopupSign = sign;
+	}
+	const ac = getAcById(acId);
+	if (!ac) return;
+	ac.spdSign = spdPopupSign;     // persist to aircraft for future popups
+	// Re‑render buttons with updated highlight
+	const rect = activePopup?.el.getBoundingClientRect();
+	if (rect) renderSpdPopup(ac, rect.left, rect.top);
+}
+
 function issueSpdFromPopup(val, acId) {
 	const ac = getAcById(acId);
 	if (!ac) return;
@@ -1407,47 +1433,38 @@ function issueSpdFromPopup(val, acId) {
 	const isMach = spdPopupMach;
 	const delay = pilotDelay('SPD', ac.altFt);
 
+	// Store ATC target
 	if (isMach) {
-		const mach = clamp(parseFloat(val), 0.60, 0.99);
-
-		// Display instantly
-		ac.clearedSpdDisplay = `S${mach.toFixed(2)}`;
-
-		cancelPendingType(ac, 'SPD');
-		ac.pendingInstrs.push({
-			type: 'SPD',                         // ← add type
-			triggerTime: simTimeSec + delay,
-			label: `M${mach.toFixed(2)}`,
-			apply: () => {
-				ac.spdMode = 'MACH';
-				ac.clearedMach = mach;
-				ac.clearedIas = null;
-				ac.crossoverAlt = null
-				const tas = machToSpeeds(mach, ac.fl).tas;
-				ac.targetGs = clamp(tas, 200, 550);
-			}
-		});
+		const mach = Number(val);
+		ac.spdMode = 'MACH';
+		ac.clearedMach = mach;
+		ac.clearedIas = null;
+		const sign = ac.spdSign ?? spdPopupSign ?? null;
+		const suffix = sign ? sign : '';
+		ac.clearedSpdDisplay = `S${mach.toFixed(2).toString().replace(/^0\./, '.')}${suffix}`;
+		ac.targetGs = null; // autoGs will use clearedMach
 	} else {
-		const ias = clamp(parseInt(val), 180, 350);
-
-		// Display instantly
-		ac.clearedSpdDisplay = `S${String(ias).substring(0, 2)}`;
-
-		cancelPendingType(ac, 'SPD');
-		ac.pendingInstrs.push({
-			type: 'SPD',                         // ← add type
-			triggerTime: simTimeSec + delay,
-			label: `IAS ${ias}`,
-			apply: () => {
-				ac.spdMode = 'IAS';
-				ac.clearedIas = ias;
-				ac.clearedMach = null;
-				ac.crossoverAlt = null
-				const tas = iasToTas(ias, ac.altFt);
-				ac.targetGs = clamp(tas, 200, 550);
-			}
-		});
+		const kts = Number(val);
+		ac.spdMode = 'IAS';
+		ac.clearedIas = kts;
+		ac.clearedMach = null;
+		const sign = ac.spdSign ?? spdPopupSign ?? null;
+		const suffix = sign ? sign : '';
+		ac.clearedSpdDisplay = `S${kts/10}${suffix}`;
+		ac.targetGs = null; // autoGs will use clearedIas
 	}
+
+	cancelPendingType(ac, 'SPD');
+
+	ac.pendingInstrs.push({
+		type: 'SPD',
+		triggerTime: simTimeSec + delay,
+		label: ac.clearedSpdDisplay,
+		apply() {
+			// No extra apply logic; autoGs reads clearedMach/IAS
+		}
+	});
+
 	closeActivePopup();
 	updateAtcStatus();
 	draw();
@@ -1592,7 +1609,7 @@ function createAircraft(nx, ny) {
 		crossoverAlt: null,
 		// hit regions (set by drawAcData each frame)
 		dbRect: null, cflRect: null, chdRect: null,
-		spdRect: null, ftRect: null,
+		spdRect: null, ftRect: null, spdSign: null,
 	};
 	aircraft.push(ac);
 	return ac;
@@ -2538,56 +2555,56 @@ const SCENARIO_ROUTES = [
 		group: 'SI_IN',
 		waypoints: ['SAMAS', 'ISBIG', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
 		fls: ['F187', 'F266', 'F291', 'F331', 'F351', 'F371', 'F391'],
-		minAc: 1, maxAc: 3, acSegments: [0, 3], segFrac: { 2: [0.05, 0.2] }
+		minAc: 1, maxAc: 3, acSegments: [0, 3], segFrac: { 2: [0.05, 0.2] }, label: '07L SIK'
 	},
 	{
 		group: 'SI_IN',
 		waypoints: ['LH', 'GIVIV', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
 		fls: ['F187', 'F331', 'F351', 'F371', 'F391'],
-		minAc: 1, maxAc: 3, acSegments: [0, 3], segFrac: { 2: [0.05, 0.2] }
+		minAc: 1, maxAc: 3, acSegments: [0, 3], segFrac: { 2: [0.05, 0.2] }, label: '07L SIK'
 	},
 	{
 		group: 'IK_IN',
 		waypoints: ['BUNTA', 'LENKO', 'IKELA', 'IDOSI', 'MYWAY', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
 		fls: ['F270', 'F290', 'F330', 'F370', 'F410'],
-		minAc: 1, maxAc: 4, acSegments: [1, 4], segFrac: { 0: [0.5, 0.95], 2: [0.05, 0.3] }
+		minAc: 1, maxAc: 4, acSegments: [1, 4], segFrac: { 0: [0.5, 0.95], 2: [0.05, 0.3] }, label: '07L IDO'
 	},
 	{
 		group: 'DS_IN',
 		waypoints: ['72PCA', 'DONDA', 'DOSUT', 'DULOP', 'CARSO', 'SUKER', 'HOCKY', 'CYBER', 'BETTY', 'BIGEX'],
 		fls: ['F270', 'F310', 'F320', 'F350', 'F360', 'F390', 'F400'],
-		minAc: 2, maxAc: 4, acSegments: [1, 3], segFrac: { 1: [0.5, 0.99], 2: [0.01, 0.3] }
+		minAc: 2, maxAc: 4, acSegments: [1, 3], segFrac: { 1: [0.5, 0.99], 2: [0.01, 0.3] }, label: '07L CAR'
 	},
 	{
 		group: 'SB_IN',
 		waypoints: ['ATBUD', 'ASOBA', 'DULOP', 'CARSO', 'SUKER', 'HOCKY', 'CYBER', 'BETTY', 'BIGEX'],
 		fls: ['F300', 'F380'],
-		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.01, 0.6] }
+		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.01, 0.6] }, label: '07L CAR'
 	},
 	// INBOUND LANDING VMMC
 	{
 		group: 'SI_IN',
 		waypoints: ['SAMAS', 'ISBIG', 'SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI'],
 		fls: ['F187', 'F266', 'F291', 'F331', 'F351', 'F371', 'F391', 'F411'],
-		minAc: 0, maxAc: 2, acSegments: [0, 4], segFrac: { 3: [0.05, 0.2] }
+		minAc: 0, maxAc: 2, acSegments: [0, 4], segFrac: { 3: [0.05, 0.2] }, label: '34 SIK'
 	},
 	{
 		group: 'IK_IN',
 		waypoints: ['LENKO', 'IKELA', 'IDOSI', 'DASON', 'COTON', 'CHALI'],
 		fls: ['F270', 'F290', 'F330', 'F370', 'F390', 'F410'],
-		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.05, 0.2] }
+		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.05, 0.2] }, label: '34 IDO'
 	},
 	{
 		group: 'DS_IN',
 		waypoints: ['72PCA', 'DONDA', 'DOSUT', 'DULOP', 'DUMOL', 'MORTU', 'ISBAN', 'ROBIN', 'CHALI'],
 		fls: ['F270', 'F310', 'F320', 'F350', 'F360', 'F390', 'F400'],
-		minAc: 0, maxAc: 2, acSegments: [1, 3], segFrac: { 1: [0.4, 0.99], 2: [0.01, 0.3] }
+		minAc: 0, maxAc: 2, acSegments: [1, 3], segFrac: { 1: [0.4, 0.99], 2: [0.01, 0.3] }, label: '34'
 	},
 	{
 		group: 'SB_IN',
 		waypoints: ['ATBUD', 'ASOBA', 'DULOP', 'DUMOL', 'MORTU', 'ISBAN', 'ROBIN', 'CHALI'],
 		fls: ['F300', 'F380'],
-		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.05, 0.3] }
+		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.05, 0.3] }, label: '34'
 	},
 	// ZGGG DEPARTURE
 	{
@@ -2669,25 +2686,25 @@ const SCENARIO_ROUTES = [
 		group: 'SI_IN',
 		waypoints: ['SAMAS', 'ISBIG', 'SIKOU', 'RAGSO', 'DASON', 'COTON', 'LANDA'],
 		fls: ['F331', 'F351', 'F371', 'F391', 'F411'],
-		minAc: 0, maxAc: 2, acSegments: [0, 4], segFrac: { 3: [0.01, 0.2] }
+		minAc: 0, maxAc: 2, acSegments: [0, 4], segFrac: { 3: [0.01, 0.2] }, label: '15'
 	},
 	{
 		group: 'IK_IN',
 		waypoints: ['LENKO', 'IKELA', 'IDOSI', 'DASON', 'COTON', 'LANDA'],
 		fls: ['F270', 'F290', 'F330', 'F370', 'F390', 'F410'],
-		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 13: [0.01, 0.2] }
+		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 13: [0.01, 0.2] }, label: '15'
 	},
 	{
 		group: 'DS_IN',
 		waypoints: ['72PCA', 'DONDA', 'DOSUT', 'DULOP', 'DUMOL', 'MORTU', 'ISBAN', 'ROBIN', 'ALLEY', 'GOBBI', 'LANDA'],
 		fls: ['F270', 'F310', 'F320', 'F350', 'F360', 'F390', 'F400'],
-		minAc: 0, maxAc: 2, acSegments: [1, 3], segFrac: { 1: [0.5, 0.99], 2: [0.01, 0.3] }
+		minAc: 0, maxAc: 2, acSegments: [1, 3], segFrac: { 1: [0.5, 0.99], 2: [0.01, 0.3] }, label: '15'
 	},
 	{
 		group: 'SB_IN',
 		waypoints: ['ATBUD', 'ASOBA', 'DULOP', 'DUMOL', 'MORTU', 'ISBAN', 'ROBIN', 'ALLEY', 'GOBBI', 'LANDA'],
 		fls: ['F300', 'F380'],
-		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.01, 0.3] }
+		minAc: 0, maxAc: 2, acSegments: [0, 2], segFrac: { 1: [0.01, 0.3] }, label: '15'
 	},
 	// OVF
 	// SI - KA
@@ -3169,7 +3186,8 @@ function generateAcOnRoute(airway, groupCfg = null, committed = []) {
 			y,
 			route,
 			scenarioGroup: groupCfg?.group ?? null,
-			trackPos
+			trackPos,
+			routeLabel: airway.label ?? null
 		};
 
 		out.push(candidate);
@@ -3246,24 +3264,24 @@ function generateScenario() {
 
 // NEW: bridge from candidate objects → aircraft[] using spacing + spawner
 function commitScenarioAircraft(candidates) {
-    if (!candidates || !candidates.length) return;
+	if (!candidates || !candidates.length) return;
 
-    const targetTotal = getScenarioTargetCount();
+	const targetTotal = getScenarioTargetCount();
 
-    // 1) Apply spacing rules
-    const pruned = pruneBySpacing(candidates);
+	// 1) Apply spacing rules
+	const pruned = pruneBySpacing(candidates);
 
-    // 2) Hard trim to scenGenCount (and safety MAX_AC)
-    const hardCap = Math.min(targetTotal, MAX_AC);
-    const finalList = pruned.slice(0, hardCap);
+	// 2) Hard trim to scenGenCount (and safety MAX_AC)
+	const hardCap = Math.min(targetTotal, MAX_AC);
+	const finalList = pruned.slice(0, hardCap);
 
-    // 3) Spawn each into aircraft[]
-    finalList.forEach(c => {
-        if (aircraft.length >= MAX_AC) return; // extra safety
-        spawnGeneratedAc(c);
-    });
+	// 3) Spawn each into aircraft[]
+	finalList.forEach(c => {
+		if (aircraft.length >= MAX_AC) return; // extra safety
+		spawnGeneratedAc(c);
+	});
 
-    refreshPanel();
+	refreshPanel();
 }
 
 function spawnGeneratedAc(ac) {
@@ -3317,10 +3335,11 @@ function spawnGeneratedAc(ac) {
 		spdMode,
 		clearedMach,
 		clearedIas,
+		spdSign: null,
 		clearedHdgDisplay: null,
 		cflDisplay: null,
-		clearedSpdDisplay,
-		freeTextStatic: '',
+		clearedSpdDisplay: null,
+		freeTextStatic: ac.routeLabel ?? '',
 		freeTextInput: '',
 		inboundTrack: null,
 		inboundSettled: false,
@@ -4499,7 +4518,7 @@ function confirmAddAc() {
 		route,            // ← from variable above
 		directWp,         // ← from variable above, same object reference as route[0]
 		appearTime: null, active: true, trails: [],
-		spdMode, clearedMach, clearedIas,
+		spdMode, clearedMach, clearedIas, spdSign: null,
 		clearedHdgDisplay: null,
 		cflDisplay: null,
 		clearedSpdDisplay,
@@ -4746,7 +4765,7 @@ function handleCSVFile(event) {
 				route, directWp: null,
 				appearTime, active: appearTime === null,
 				trails: [],
-				spdMode, clearedMach, clearedIas,
+				spdMode, clearedMach, clearedIas, spdSign: null,
 				clearedHdgDisplay: null,
 				cflDisplay: null,
 				clearedSpdDisplay,
