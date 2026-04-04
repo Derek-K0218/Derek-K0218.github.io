@@ -58,8 +58,8 @@ function pilotDelay(instrType, altFt) {
 	// Base delays by instruction type (seconds)
 	const BASE = {
 		HDG: 8,    // quickest — just roll in bank
-		SPD: 14,    // moderate — power/thrust adjustment
-		FL: 16,    // slowest  — checklist, pressurisation, FMS
+		SPD: 10,    // moderate — power/thrust adjustment
+		FL: 12,    // slowest  — checklist, pressurisation, FMS
 	};
 
 	// Altitude factor: <100 = 1.0x, 100-150 = 1.1x ..., >350 = 2.2x
@@ -84,6 +84,7 @@ function cancelPendingType(ac, type) {
 
 // CRte / Mod CRte state
 let crteAcId = null;   // ac.id whose CRte is displayed
+let CrteRouteHideTimer = null;
 let modCrteAcId = null;   // ac.id in Mod CRte mode (waiting for right-click)
 let modCrtePopupEl = null;   // the mod-crte waypoint-list popup element
 let modCrteRouteHideTimer = null;
@@ -135,16 +136,48 @@ function physicsTick() {
 			if (arrived) { ac.directWp = null; ac.navMode = 'HDG'; }
 		}
 
-		// ── ALTITUDE (climb/descend) ──────────────────────────────────
+		// ALTITUDE: climb / descend, with level-constraint support
 		if (ac.altFt !== ac.targetAltFt) {
 			const climbing = ac.targetAltFt > ac.altFt;
-			const rate = climbing
-				? (ac.altFt > 20000 ? perf.cruiseClimbRt : perf.climbRt)
-				: perf.descentRt;
-			const step = rate / 60 * dt; // ft per second
+			let rateFpm;
+
+			if (climbing) {
+				rateFpm = ac.altFt > ac.xover ? perf.cruiseClimbRt : perf.climbRt;
+			} else {
+				// base descent rate
+				rateFpm = perf.descentRt;
+
+				// Level-constraint logic for descent
+				if (ac.lcActive && ac.lcWp && ac.lcTargetAltFt != null) {
+					const est = estimateTimeToWaypoint(ac, ac.lcWp);
+					if (est && est.tSec > 0) {
+						const deltaFt = ac.altFt - ac.lcTargetAltFt; // positive if above target
+						if (deltaFt > 0) {
+							const reqVsFpm = deltaFt / (est.tSec / 60); // ft/min needed
+							ac.lcReqVsFpm = reqVsFpm;
+
+							// If required VS is greater than typical, increase rate
+							if (reqVsFpm > perf.descentRt) {
+								rateFpm = reqVsFpm * 1.1; // 1.1x buffer for possible delay
+							}
+						}
+					}
+				}
+			}
+
+			const dt = 1; // existing physicsTick uses dt = 1 second
+			const step = rateFpm / 60 * dt; // ft per tick
+
 			if (Math.abs(ac.targetAltFt - ac.altFt) <= step) {
 				ac.altFt = ac.targetAltFt;
 				ac.fl = altFtToFl(ac.altFt);
+
+				// Deactivate constraint as soon as level at cleared FL
+				ac.lcActive = false;
+				ac.lcWp = null;
+				ac.lcTargetAltFt = null;
+				ac.lcReqVsFpm = null;
+				ac.lcIndex = null;
 			} else {
 				ac.altFt += climbing ? step : -step;
 				ac.fl = altFtToFl(ac.altFt);
@@ -313,6 +346,20 @@ function trackToWaypoint(ac, wpName, perf) {
 		: ((ac.hdg + Math.sign(diff) * step) + 360) % 360;
 
 	return false;
+}
+
+function estimateTimeToWaypoint(ac, wpName) {
+	const wp = WAYPOINTS.find(w => w.name === wpName);
+	if (!wp) return null;
+
+	const dx = wp.x - ac.x;
+	const dy = wp.y - ac.y;
+	const distNM = Math.hypot(dx, dy);
+	if (distNM < 1e-3) return { distNM: 0, tSec: 0 };
+
+	const gs = Math.max(ac.gs, 120);  // avoid zero
+	const tSec = distNM / gs * 3600;
+	return { distNM, tSec };
 }
 
 function autoGs(ac, perf) {
@@ -552,6 +599,13 @@ function ctxCRte() {
 	modCrteAcId = null;
 	closeModCrtePopup();
 	draw();
+
+	if (CrteRouteHideTimer) clearTimeout(CrteRouteHideTimer);
+	CrteRouteHideTimer = setTimeout(() => {
+		crteAcId = null;
+		CrteRouteHideTimer = null;
+		draw();
+	}, 3000);
 }
 
 // ── Mod CRte — display route then wait for right-click on map ─────────────
@@ -1122,6 +1176,65 @@ let radarTimer = null;
 const MAX_TRAILS = 4;
 let activePopup = null; // { type: 'CFL'|'CHD'|'SPD'|'FT', acId, el }
 
+function sameRoute(a, b) {
+	if (!a || !b || a.length !== b.length) return false;
+	for (let i = 0; i < a.length; i++) {
+		if (a[i] !== b[i]) return false;
+	}
+	return true;
+}
+
+// Returns best matching route entry for the aircraft's current route array.
+// Prefers routes whose *suffix* equals acRoute, and breaks ties on:
+//   1) Longest canonical route (more information)
+//   2) Fewer extra tails beyond the aircraft's last WP (to avoid wrong longer route)
+function findBestRouteConstraints(acRoute) {
+	if (!acRoute || !acRoute.length) return null;
+
+	let best = null;
+
+	for (const entry of ROUTE_LEVEL_CONSTRAINTS) {
+		const full = entry.route;
+		if (!full || full.length < acRoute.length) continue;
+
+		// Check if acRoute matches a suffix of full
+		let ok = true;
+		const offset = full.length - acRoute.length;
+		for (let i = 0; i < acRoute.length; i++) {
+			if (full[offset + i] !== acRoute[i]) {
+				ok = false;
+				break;
+			}
+		}
+		if (!ok) continue;
+
+		// Candidate: suffix match found
+		const extraTail = full.length - acRoute.length; // how many WPs before our first
+		if (!best) {
+			best = { entry, extraTail };
+			continue;
+		}
+
+		const bestFull = best.entry.route;
+
+		// Tie‑breaking:
+		// 1) Prefer shorter canonical route (more "pure" arrival definition)
+		if (full.length < bestFull.length) {
+			best = { entry, extraTail };
+			continue;
+		}
+		if (full.length > bestFull.length) {
+			continue;
+		}
+
+		// 2) For same length, prefer shorter extraTail
+		if (extraTail < best.extraTail) {
+			best = { entry, extraTail };
+		}
+	}
+	return best ? best.entry : null;
+}
+
 // ── POP-UP SECTION ─────────────────────────────────────────────────
 function closeActivePopup() {
 	if (!activePopup) return;
@@ -1167,15 +1280,15 @@ function openCflPopup(ac, screenX, screenY) {
 
 	const html = `
         <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;width:110px;
-                    font-size:0.8rem;letter-spacing:1px;text-align:center;">${ac.callsign}</div>
+                    font-size:0.80rem;letter-spacing:1px;text-align:center;">${ac.callsign}</div>
         <div style="max-height:140px;overflow-y:auto;margin-bottom:8px;width:110px;
                     border:1px solid #30363d;border-radius:4px;padding:2px;text-align:left;">
             ${flOptions}
         </div>
-        <input id="cflFreeInput" type="text" maxlength="3" placeholder="e.g. 350"
-               style="width:110px;background:#21262d;border:1px solid #30363d;
-                      border-radius:4px;color:#e6edf3;padding:4px 6px;
-                      font-size:0.80rem;box-sizing:border-box;"
+        <input id="cflFreeInput" type="text" maxlength="3"
+               style="width:40px;background:#21262d;border:1px solid #30363d;
+                      border-radius:4px;color:#e6edf3;padding:4px 6px;font-family:'Cascadia Mono';
+                      font-size:0.80rem;box-sizing:border-box;text-align:center"
                oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                onkeydown="handleCflKey(event,${ac.id})">`;
 
@@ -1206,6 +1319,7 @@ function issueCflFromPopup(flVal, acId) {
 		apply: () => {
 			ac.targetAltFt = flToAltFt(flVal);
 			ac.cflApplied = true;
+			maybeArmLevelConstraint(ac, flVal);
 			// Do NOT touch ac.cflDisplay here — let physics clear it naturally
 		}
 	});
@@ -1218,9 +1332,73 @@ function handleCflKey(e, acId) {
 	if (e.key === 'Escape') { closeActivePopup(); return; }
 	if (e.key !== 'Enter') return;
 	const raw = e.target.value.trim();
-	if (raw.length < 2 || raw.length > 3) return;
-	const flVal = 'F' + raw.padStart(3, '0');
+	// Require exactly 3 digits "xxx"
+	if (!/^\d\d\d$/.test(raw)) { closeActivePopup(); return; };
+
+	const flVal = 'F' + raw; // e.g. "260" -> "F260"
 	issueCflFromPopup(flVal, acId);
+}
+
+function maybeArmLevelConstraint(ac, flVal) {
+	const routeEntry = findBestRouteConstraints(ac.route);
+	if (!routeEntry) {
+		ac.lcActive = false;
+		ac.lcWp = null;
+		ac.lcTargetAltFt = null;
+		ac.lcReqVsFpm = null;
+		ac.lcIndex = null;
+		return;
+	}
+
+	const targetAltFt = flToAltFt(flVal);
+
+	// If already at or below required level, no need for constraint logic
+	if (ac.altFt <= targetAltFt) {
+		ac.lcActive = false;
+		ac.lcWp = null;
+		ac.lcTargetAltFt = null;
+		ac.lcReqVsFpm = null;
+		ac.lcIndex = null;
+		return;
+	}
+
+	// ac.route[0] is next WP; only consider constraints at or after that
+	const startIdx = 0;
+	let chosen = null;
+	let chosenRouteIdx = null;
+	let chosenConstraintIdx = null;
+
+	routeEntry.constraints.forEach((c, i) => {
+		if (c.fl !== flVal) return;
+
+		const wpIdxInRoute = ac.route.indexOf(c.wp);
+		if (wpIdxInRoute === -1) return;
+		if (wpIdxInRoute < startIdx) return;
+
+		if (
+			!chosen ||
+			wpIdxInRoute < chosenRouteIdx
+		) {
+			chosen = c;
+			chosenRouteIdx = wpIdxInRoute;
+			chosenConstraintIdx = i;
+		}
+	});
+
+	if (!chosen) {
+		ac.lcActive = false;
+		ac.lcWp = null;
+		ac.lcTargetAltFt = null;
+		ac.lcReqVsFpm = null;
+		ac.lcIndex = null;
+		return;
+	}
+
+	ac.lcActive = true;
+	ac.lcWp = chosen.wp;
+	ac.lcTargetAltFt = targetAltFt;
+	ac.lcReqVsFpm = null;
+	ac.lcIndex = chosenConstraintIdx;
 }
 
 // Cleared HDG Pop-up
@@ -1231,21 +1409,21 @@ function openChdPopup(ac, screenX, screenY) {
 		: `maintain present HDG`;
 
 	const html = `<div style="font-weight:700;color:#58a6ff;margin-bottom:8px;
-                font-size:0.75rem;letter-spacing:1px;text-align:center">
+                font-size:0.80rem;letter-spacing:1px;text-align:center">
                 ${ac.callsign}
             </div>
 			<div style="padding:4px">
             <input id="chdFreeInput" type="text" maxlength="3"
-				style="width:50px;background:#21262d;border:1px solid #30363d;
-                border-radius:4px;color:#e6edf3;padding:4px 6px;
-                font-size:0.80rem;box-sizing:border-box;"
+				style="width:40px;background:#21262d;border:1px solid #30363d;
+                border-radius:4px;color:#e6edf3;padding:4px 6px;font-family:'Cascadia Mono';
+                font-size:0.80rem;box-sizing:border-box;text-align:center"
                 oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                 onkeydown="handleChdKey(event,${ac.id})">
 			</div>
 			<div style="padding:4px">
-            <button style="width:50px;padding:6px;margin-bottom:2px;background:#21262d;
+            <button style="width:40px;padding:6px;margin-bottom:2px;background:#21262d;
                 border:1px solid #f78166;border-radius:5px;color:#f78166;
-                font-size:0.78rem;font-weight:700;cursor:pointer"
+                font-size:0.78rem;font-weight:500;cursor:pointer"
 				onclick="issueChdCancel(${ac.id})">HDG</button>
 			</div>`;
 	makePopup(screenX, screenY, ac.id, html);
@@ -1322,9 +1500,14 @@ function issueChdCancel(acId) {
 function handleChdKey(e, acId) {
 	if (e.key === 'Escape') { closeActivePopup(); return; }
 	if (e.key !== 'Enter') return;
-	const raw = parseInt(e.target.value.trim());
-	if (isNaN(raw)) return;
-	issueChdFromPopup(raw, acId);
+	const raw = e.target.value.trim();
+	// Require exactly 3 digits "xxx"
+	if (!/^\d\d\d$/.test(raw)) { closeActivePopup(); return; };
+
+	const val = parseInt(raw, 10);
+	if (isNaN(val)) { closeActivePopup(); return; };
+
+	issueChdFromPopup(val, acId);
 }
 
 // Cleared Speed Pop-up
@@ -1360,11 +1543,11 @@ function renderSpdPopup(ac, screenX, screenY) {
 	}).join('');
 
 	const plusActive = spdPopupSign === '+';
-    const minusActive = spdPopupSign === '-';
+	const minusActive = spdPopupSign === '-';
 
 	const html = `
       <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;width:70px;
-                  font-size:0.75rem;letter-spacing:1px;text-align:center;">
+                  font-size:0.80rem;letter-spacing:1px;text-align:center;">
         ${ac.callsign}
       </div>
       <div id="spdList" style="max-height:100px;overflow-y:auto;margin-bottom:6px;width:70px;
@@ -1373,29 +1556,27 @@ function renderSpdPopup(ac, screenX, screenY) {
       </div>
       <div style="display:flex;gap:4px;margin-bottom:6px;width:70px;">
         <button onclick="toggleSpdSign(${ac.id}, '+')"
-                style="flex:1;padding:4px;background:#21262d;border:1px solid ${
-                    plusActive ? '#58a6ff' : '#30363d'
-                };border-radius:4px;color:${plusActive ? '#58a6ff' : '#e6edf3'};
-                       cursor:pointer;font-weight:700;">+</button>
+                style="flex:1;padding:2px;background:#21262d;border:1px solid ${plusActive ? '#58a6ff' : '#30363d'
+		};border-radius:4px;color:${plusActive ? '#58a6ff' : '#e6edf3'};
+                       cursor:pointer;font-weight:500;">+</button>
         <button onclick="toggleSpdSign(${ac.id}, '-')"
-                style="flex:1;padding:4px;background:#21262d;border:1px solid ${
-                    minusActive ? '#58a6ff' : '#30363d'
-                };border-radius:4px;color:${minusActive ? '#f78166' : '#e6edf3'};
-                       cursor:pointer;font-weight:700;">−</button>
+                style="flex:1;padding:2px;background:#21262d;border:1px solid ${minusActive ? '#58a6ff' : '#30363d'
+		};border-radius:4px;color:${minusActive ? '#f78166' : '#e6edf3'};
+                       cursor:pointer;font-weight:500;">−</button>
       </div>
-		<div style="display:flex;gap:4px;margin-bottom:6px;width:70px;">
+		<div style="display:flex;gap:2px;margin-bottom:6px;width:70px;">
 			<button id="spdMBtn" onclick="spdPopupToggleMach(${ac.id},${screenX},${screenY})"
                 style="flex:1;padding:4px;background:${isMach ? '#1f6feb' : '#21262d'};
                        border:1px solid #30363d;border-radius:4px;
-                       color:#fff;cursor:pointer;font-weight:700;">M</button>
+                       color:#fff;cursor:pointer;font-weight:500;">M</button>
             <button onclick="issueSpdCancel(${ac.id})"
-                style="flex:1;padding:4px;background:#21262d;border:1px solid #f78166;
-                       border-radius:4px;color:#f78166;cursor:pointer;font-weight:700;">✕</button>
+                style="flex:1;padding:2px;background:#21262d;border:1px solid #f78166;
+                       border-radius:4px;color:#f78166;cursor:pointer;font-weight:500;">✕</button>
 		</div>
-        <input id="spdFreeInput" type="text" maxlength="4" placeholder="${isMach ? '0.82' : '280'}"
-               style="width:70px;background:#21262d;border:1px solid #30363d;
-                      border-radius:4px;color:#e6edf3;padding:4px;
-                      font-size:0.80rem;box-sizing:border-box;"
+        <input id="spdFreeInput" type="text" maxlength="3"
+               style="width:40px;background:#21262d;border:1px solid #30363d;
+                      border-radius:4px;color:#e6edf3;padding:4px;font-family:'Cascadia Mono';
+                      font-size:0.80rem;box-sizing:border-box;text-align:center"
                onkeydown="handleSpdKey(event,${ac.id})">`;
 
 	const existing = document.getElementById('dataBlockPopup');
@@ -1444,13 +1625,13 @@ function issueSpdFromPopup(val, acId) {
 		ac.clearedSpdDisplay = `S${mach.toFixed(2).toString().replace(/^0\./, '.')}${suffix}`;
 		ac.targetGs = null; // autoGs will use clearedMach
 	} else {
-		const kts = Number(val);
+		const kts = Number(val * 10);
 		ac.spdMode = 'IAS';
 		ac.clearedIas = kts;
 		ac.clearedMach = null;
 		const sign = ac.spdSign ?? spdPopupSign ?? null;
 		const suffix = sign ? sign : '';
-		ac.clearedSpdDisplay = `S${kts/10}${suffix}`;
+		ac.clearedSpdDisplay = `S${kts / 10}${suffix}`;
 		ac.targetGs = null; // autoGs will use clearedIas
 	}
 
@@ -1522,25 +1703,31 @@ function handleSpdKey(e, acId) {
 	if (e.key === 'Escape') { closeActivePopup(); return; }
 	if (e.key !== 'Enter') return;
 	const raw = e.target.value.trim();
-	if (!raw) return;
-	issueSpdFromPopup(raw, acId);
+	if (!raw) { closeActivePopup(); return; };
+	const isMach = spdPopupMach;
+	if (isMach) {
+		// Require format ".xx" exactly
+		if (!/^\.\d\d$/.test(raw)) { closeActivePopup(); return; };
+		const val = parseFloat(raw);
+		if (isNaN(val)) { closeActivePopup(); return; };
+		issueSpdFromPopup(val, acId);
+	} else {
+		// IAS: must be 2 digits "xx"
+		if (!/^\d\d$/.test(raw)) { closeActivePopup(); return; };
+		const val = parseInt(raw, 10);
+		if (isNaN(val)) { closeActivePopup(); return; };
+		issueSpdFromPopup(val, acId);
+	}
 }
 
 // Free Text Input Pop-up
 function openFtPopup(ac, screenX, screenY) {
-	const html = `
-        <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;
-                    font-size:0.75rem;letter-spacing:1px;text-align:center;">${ac.callsign} — Notes</div>
-        <input id="ftInput" type="text" maxlength="30"
+	const html = `<input id="ftInput" type="text" maxlength="30"
                value="${ac.freeTextInput ?? ''}"
-               placeholder="free text..."
                style="width:160px;background:#21262d;border:1px solid #30363d;
-                      border-radius:4px;color:#e6edf3;padding:4px 6px;
+                      border-radius:4px;color:#e6edf3;padding:4px 6px;font-family:'Cascadia Mono';
                       font-size:0.80rem;box-sizing:border-box;"
-               onkeydown="handleFtKey(event,${ac.id})">
-        <div style="font-size:0.68rem;color:#8b949e;margin-top:4px;">
-            ENTER to save • ESC to cancel
-        </div>`;
+               onkeydown="handleFtKey(event,${ac.id})">`;
 
 	makePopup(screenX, screenY, ac.id, html);
 	setTimeout(() => {
@@ -1594,6 +1781,12 @@ function createAircraft(nx, ny) {
 		pendingInstrs: [],   // [{ triggerTime, apply: fn }]
 		// sim state
 		altFt, targetAltFt: altFt,
+		// Level-constraint guidance state
+		lcActive: false,
+		lcWp: null,
+		lcTargetAltFt: null,
+		lcReqVsFpm: null,
+		lcIndex: null,
 		targetHdg: null, targetGs: null,
 		navMode: 'HDG', route: [], directWp: null,
 		appearTime: null, active: true, trails: [],
@@ -2585,7 +2778,7 @@ const SCENARIO_ROUTES = [
 	{
 		group: 'SI_IN',
 		waypoints: ['SAMAS', 'ISBIG', 'SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI'],
-		fls: ['F187', 'F266', 'F291', 'F331', 'F351', 'F371', 'F391', 'F411'],
+		fls: ['F187', 'F266', 'F291', 'F331', 'F351', 'F371', 'F391'],
 		minAc: 0, maxAc: 2, acSegments: [0, 4], segFrac: { 3: [0.05, 0.2] }, label: '34 SIK'
 	},
 	{
@@ -2874,6 +3067,72 @@ const SCENARIO_GROUPS = [
 	{ group: 'EL_IN', min: 0, max: 1, minSpacingNM: 5 },
 	{ group: 'DT_IN', min: 1, max: 6, minSpacingNM: 30 },
 	{ group: 'TM_IN', min: 1, max: 5, minSpacingNM: 30 },
+];
+
+// Multiple level constraints per route
+const ROUTE_LEVEL_CONSTRAINTS = [
+	{
+		route: ['SAMAS', 'ISBIG', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
+		constraints: [
+			// Example: you can add more later
+			// { wp: 'SIKOU', fl: 'F300' },
+			{ wp: 'MAPLE', fl: 'F260' }
+		]
+	},
+	{
+		route: ['LH', 'GIVIV', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
+		constraints: [
+			{ wp: 'MAPLE', fl: 'F260' }
+		]
+	},
+	{
+		route: ['BUNTA', 'LENKO', 'IKELA', 'IDOSI', 'MYWAY', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
+		constraints: [
+			{ wp: 'MAPLE', fl: 'F260' }
+		]
+	},
+	{
+		route: ['72PCA', 'DONDA', 'DOSUT', 'DULOP', 'CARSO', 'SUKER', 'HOCKY', 'CYBER', 'BETTY', 'BIGEX'],
+		constraints: [
+			{ wp: 'CARSO', fl: 'F310' }
+		]
+	},
+	{
+		route: ['ATBUD', 'ASOBA', 'DULOP', 'CARSO', 'SUKER', 'HOCKY', 'CYBER', 'BETTY', 'BIGEX'],
+		constraints: [
+			{ wp: 'CARSO', fl: 'F310' }
+		]
+	},
+	{
+		route: ['SAMAS', 'ISBIG', 'SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI'],
+		constraints: [
+			{ wp: 'COTON', fl: 'F120' }, { wp: 'CHALI', fl: 'F110' }
+		]
+	},
+	{
+		route: ['LENKO', 'IKELA', 'IDOSI', 'DASON', 'COTON', 'CHALI'],
+		constraints: [
+			{ wp: 'COTON', fl: 'F120' }, { wp: 'CHALI', fl: 'F110' }
+		]
+	},
+	{
+		route: ['SAMAS', 'ISBIG', 'SIKOU', 'RAGSO', 'DASON', 'COTON', 'CHALI', 'SAPAX', 'BIGEX', 'TAMOT', 'IDUMA'],
+		constraints: [
+			{ wp: 'CHALI', fl: 'F260' }
+		]
+	},
+	{
+		route: ['SAMAS', 'ISBIG', 'SIKOU', 'RAGSO', 'DASON', 'COTON', 'LANDA'],
+		constraints: [
+			{ wp: 'COTON', fl: 'F120' }, { wp: 'LANDA', fl: 'F110' }
+		]
+	},
+	{
+		route: ['LENKO', 'IKELA', 'IDOSI', 'DASON', 'COTON', 'LANDA'],
+		constraints: [
+			{ wp: 'COTON', fl: 'F120' }, { wp: 'LANDA', fl: 'F110' }
+		]
+	}
 ];
 
 const routeVisibility = { TRE: true, TRS: true, TRW: true, OVF: true, OVF_OTHER: false, EX_RTE: true };
@@ -3320,10 +3579,16 @@ function spawnGeneratedAc(ac) {
 		x: parseFloat(ac.x.toFixed(2)),
 		y: parseFloat(ac.y.toFixed(2)),
 		fl: ac.fl,
-		lx: 0,
-		ly: 0,
+		lx: (Math.random() - 0.5) * 18,
+		ly: (Math.random() - 0.5) * 30,
 		altFt,
 		targetAltFt: altFt,
+		// Level-constraint guidance state
+		lcActive: false,
+		lcWp: null,
+		lcTargetAltFt: null,
+		lcReqVsFpm: null,
+		lcIndex: null,
 		targetHdg: null,
 		targetGs: null,
 		navMode: ac.route.length > 0 ? 'RTE' : 'HDG',
@@ -4338,6 +4603,7 @@ function issueModCrteDirect(acId, wpName) {
 			if (modCrtePreviewRoute?.acId === acId) modCrtePreviewRoute = null;
 		}
 	});
+	recomputeLevelConstraintForAc(ac);
 
 	// ── DISPLAY: instant — show trimmed route from chosen WP ────────
 	modCrtePreviewRoute = { acId, route: ac.route.slice(idx) };
@@ -4356,6 +4622,21 @@ function issueModCrteDirect(acId, wpName) {
 
 	draw();
 	updateAtcStatus();
+}
+
+function recomputeLevelConstraintForAc(ac) {
+	// If there is no current CFL, nothing to arm
+	if (!ac.cflDisplay || !ac.targetAltFt) {
+		ac.lcActive = false;
+		ac.lcWp = null;
+		ac.lcTargetAltFt = null;
+		ac.lcReqVsFpm = null;
+		ac.lcIndex = null;
+		return;
+	}
+
+	// Re-run selection using current route and cleared FL
+	maybeArmLevelConstraint(ac, ac.cflDisplay);
 }
 
 // ── Add Aircraft Modal ───────────────────────────────────────────
@@ -4513,6 +4794,12 @@ function confirmAddAc() {
 		mach: null,
 		pendingInstrs: [],
 		altFt, targetAltFt: altFt,
+		// Level-constraint guidance state
+		lcActive: false,
+		lcWp: null,
+		lcTargetAltFt: null,
+		lcReqVsFpm: null,
+		lcIndex: null,
 		targetHdg: null, targetGs: null,
 		navMode,          // ← from variable above
 		route,            // ← from variable above
@@ -4758,8 +5045,15 @@ function handleCSVFile(event) {
 				hdg: hdgN, gs: gsN, mach,
 				x: xN, y: yN, fl,
 				type: csvType, wtc: csvWtc,
-				lx: 0, ly: 0,
+				lx: (Math.random() - 0.5) * 18,
+				ly: (Math.random() - 0.5) * 30,
 				altFt: flToAltFt(fl), targetAltFt: flToAltFt(fl),
+				// Level-constraint guidance state
+				lcActive: false,
+				lcWp: null,
+				lcTargetAltFt: null,
+				lcReqVsFpm: null,
+				lcIndex: null,
 				targetHdg: null, targetGs: null,
 				navMode: route.length ? 'RTE' : 'HDG',
 				route, directWp: null,
