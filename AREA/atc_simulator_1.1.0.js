@@ -578,12 +578,16 @@ function autoGs(ac, perf) {
 			// IAS regime — use ATC IAS if issued, else perf climbIAS
 			const ias = ac.spdMode === 'IAS' && ac.clearedIas != null
 				? ac.clearedIas : perf.climbIAS;          // ← was always perf.climbIAS
+			ac.mach = null;
+			ac.ias = ias;
 			return clamp(iasToTas(ias, ac.altFt), 200, 550);
 		} else {
 			// Mach regime
 			const mach = ac.spdMode === 'MACH' && ac.clearedMach != null
 				? ac.clearedMach : perf.climbMach;
 			const T = isaTemp(ac.altFt);
+			ac.mach = mach;
+			ac.ias = null;
 			return clamp(Math.round(mach * 38.967 * Math.sqrt(T)), 200, 550);
 		}
 	}
@@ -595,10 +599,14 @@ function autoGs(ac, perf) {
 			const mach = ac.spdMode === 'MACH' && ac.clearedMach != null
 				? ac.clearedMach : perf.descMach;         // ← was always perf.descMach
 			const T = isaTemp(ac.altFt);
+			ac.mach = mach;
+			ac.ias = null;
 			return clamp(Math.round(mach * 38.967 * Math.sqrt(T)), 200, 550);
 		} else {
 			const ias = ac.spdMode === 'IAS' && ac.clearedIas != null
 				? ac.clearedIas : perf.descentIAS;
+			ac.mach = null;
+			ac.ias = ias;
 			return clamp(iasToTas(ias, ac.altFt), 200, 550);
 		}
 	}
@@ -606,16 +614,24 @@ function autoGs(ac, perf) {
 	if (level) {
 		if (ac.spdMode === 'MACH' && ac.clearedMach != null) {
 			const T = isaTemp(ac.altFt);
+			ac.mach = ac.clearedMach;
+			ac.ias = null;
 			return clamp(Math.round(ac.clearedMach * 38.967 * Math.sqrt(T)), 200, 550);
 		}
 		if (ac.spdMode === 'IAS' && ac.clearedIas != null) {
+			ac.mach = null;
+			ac.ias = ac.clearedIas;
 			return clamp(iasToTas(ac.clearedIas, ac.altFt), 200, 550);
 		}
 		const xover = getOrCalcCrossover(ac, perf);
 		if (ac.altFt >= xover) {
 			const T = isaTemp(ac.altFt);
+			ac.mach = perf.cruiseMach;
+			ac.ias = null;
 			return clamp(Math.round(perf.cruiseMach * 38.967 * Math.sqrt(T)), 280, 550);
 		} else {
+			ac.mach = null;
+			ac.ias = perf.cruiseIAS;
 			return clamp(iasToTas(perf.climbIAS, ac.altFt), 200, 550);  // ← climbIAS = cruiseIAS
 		}
 	}
@@ -2595,7 +2611,7 @@ function createAircraft(nx, ny) {
 		hdg: rndInt(0, 359), gs: rndInt(280, 550),
 		x: parseFloat(nx.toFixed(2)), y: parseFloat(ny.toFixed(2)),
 		fl, type, wtc, lx: 0, ly: 0,
-		mach: null,
+		ias: null, mach: null,
 		pendingInstrs: [],   // [{ triggerTime, apply: fn }]
 		// sim state
 		altFt, targetAltFt: altFt,
@@ -4469,12 +4485,13 @@ function spawnGeneratedAc(ac) {
 	const altFt = flToAltFt(ac.fl);
 	const xover = calcCrossoverAlt(perf.climbIAS, perf.cruiseMach);
 
-	let spdMode, clearedMach, clearedIas, gs, mach;
+	let spdMode, clearedMach, clearedIas, gs, ias, mach;
 	if (altFt >= xover) {
 		spdMode = 'MACH';
 		clearedMach = null;
 		clearedIas = null;
 		mach = perf.cruiseMach;
+		ias = null;
 		const T = isaTemp(altFt);
 		gs = clamp(Math.round(perf.cruiseMach * 38.967 * Math.sqrt(T)), 280, 550);
 	} else {
@@ -4482,6 +4499,7 @@ function spawnGeneratedAc(ac) {
 		clearedMach = null;
 		clearedIas = null;
 		mach = null;
+		ias = perf.climbIAS;
 		gs = clamp(iasToTas(perf.climbIAS, altFt), 200, 550);
 	}
 
@@ -4494,6 +4512,7 @@ function spawnGeneratedAc(ac) {
 		wtc,
 		hdg: ac.hdg,
 		gs,
+		ias,
 		mach,
 		x: parseFloat(ac.x.toFixed(2)),
 		y: parseFloat(ac.y.toFixed(2)),
@@ -4701,6 +4720,7 @@ function onAcSelectChange() {
 	if (!isNaN(id)) {
 		selectedAcId = id;
 		refreshPanelFields();
+		refreshPanel();
 		updatePlaceBtns();
 		updateHeadingBtns();
 		drawCompass('_sel');
@@ -4740,7 +4760,7 @@ function refreshPanelFields() {
 		if (spdUnit) spdUnit.textContent = 'RANGE 230 – 350 kt';
 		if (sl) { sl.min = '230'; sl.max = '350'; sl.step = '1'; }
 		if (n) { n.min = '230'; n.max = '350'; n.step = '1'; }
-		const ias = ac.clearedIas ?? 280;
+		const ias = ac.clearedIas ?? ac.ias ?? 280;
 		if (sl) sl.value = ias;
 		if (n) n.value = ias;
 		const tas = iasToTas(ias, ac.altFt);
@@ -4786,10 +4806,12 @@ function refreshPanelFields() {
 	}
 
 	// ── after the MACH/IAS speed block ───────────────────────────────────
-	const gsSlEl = document.getElementById('gs_sl');
-	const gsNEl = document.getElementById('gs_n');
+	const gsSlEl = document.getElementById('gssl');
+	const gsNEl = document.getElementById('gsn');
 	if (gsSlEl) gsSlEl.value = Math.round(ac.gs);
 	if (gsNEl) gsNEl.value = Math.round(ac.gs);
+	const gsEl = document.getElementById('gsDisplay');
+	if (gsEl) gsEl.textContent = Math.round(ac.gs) + ' kt';
 
 	updateAtcSpdDisplay();
 	updateAtcStatus();
@@ -4856,6 +4878,11 @@ function updateAc(field, val) {
 	if (!ac) return;
 	if (field === 'fl') {
 		ac.fl = val;
+		ac.altFt = flToAltFt(val);       // ← sync altFt immediately so refreshSpdDisplay uses new alt
+		ac.targetAltFt = ac.altFt;       // ← also level the aircraft at new FL
+		console.log('FL change:', val, 'altFt:', ac.altFt, 'mach:', ac.mach, 'ias:', ac.ias, 'spdMode:', ac.spdMode);
+		const perf = getPerf(ac.type);
+		ac.gs = autoGs(ac, perf);
 		refreshSpdDisplay();
 	} else {
 		const v = parseFloat(val);
@@ -4891,23 +4918,40 @@ function updateAcN(field, val, mn, mx, def) {
 	draw();
 }
 function refreshSpdDisplay() {
-	const ac = getAcById(selectedAcId); if (!ac) return;
+	const ac = getAcById(selectedAcId);
+	if (!ac) return;
+
 	const sl = document.getElementById('machsl');
 	const n = document.getElementById('machn');
+	const spdLbl = document.querySelector('[data-spd-lbl]');
+	const spdUnit = document.querySelector('[data-spd-unit]');
+	const gsEl = document.getElementById('gsDisplay');
+	const tasEl = document.getElementById('tasDisplay');
+	const iasEl = document.getElementById('iasDisplay');
+	globalSpdMode = ac.spdMode || globalSpdMode;
 	if (!sl || !n) return;
 
-	if (globalSpdMode === 'MACH') {
-		const mach = ac.clearedMach ?? 0.82;
-		sl.value = mach; n.value = mach;
+	// GS is always the live ac.gs
+	if (gsEl) gsEl.textContent = Math.round(ac.gs) + ' kt';
+
+	if (ac.spdMode === 'MACH') {
+		const mach = ac.mach ?? 0.82;
+		if (sl) { sl.min = 0.70; sl.max = 0.90; sl.step = 0.01; sl.value = mach; }
+		if (n) { n.min = 0.70; n.max = 0.90; n.step = 0.01; n.value = mach; }
+		if (spdLbl) spdLbl.textContent = 'Mach';
+		if (spdUnit) spdUnit.textContent = '';
 		const { tas, ias } = machToSpeeds(mach, ac.fl);
-		document.getElementById('tasDisplay').textContent = `${tas} kt`;
-		document.getElementById('iasDisplay').textContent = `${ias} kt`;
+		if (tasEl) tasEl.textContent = tas + ' kt';
+		if (iasEl) iasEl.textContent = ias + ' kt';
 	} else {
-		const ias = ac.clearedIas ?? 280;
-		sl.value = ias; n.value = ias;
+		const ias = ac.ias ?? 280;
+		if (sl) { sl.min = 230; sl.max = 350; sl.step = 1; sl.value = ias; }
+		if (n) { n.min = 230; n.max = 350; n.step = 1; n.value = ias; }
+		if (spdLbl) spdLbl.textContent = 'IAS';
+		if (spdUnit) spdUnit.textContent = 'kt';
 		const tas = iasToTas(ias, ac.altFt);
-		document.getElementById('tasDisplay').textContent = `${tas} kt`;
-		document.getElementById('iasDisplay').textContent = `IAS input`;
+		if (tasEl) tasEl.textContent = tas + ' kt';
+		if (iasEl) iasEl.textContent = ias + ' kt';
 	}
 }
 function updateAcSpd(val) {
@@ -5828,7 +5872,7 @@ function confirmAddAc() {
 
 	// ── Route ─────────────────────────────────────────────────────────
 	const routeSelVal = document.getElementById('aaRoute').value;
-	let route = [], firEntryWp = null, firExitWp = null;
+	let route = [], firEntryWp = null, firExitWp = null, routeLabel = null;
 	if (routeSelVal) {
 		const d = JSON.parse(routeSelVal);
 		route = d.waypoints ?? [];
@@ -5868,7 +5912,7 @@ function confirmAddAc() {
 		x: parseFloat(_addAcPendingX.toFixed(2)),
 		y: parseFloat(_addAcPendingY.toFixed(2)),
 		fl, lx: 0, ly: 0,
-		mach: null,
+		ias: null, mach: null,
 		pendingInstrs: [],
 		altFt, targetAltFt: altFt,
 		// Level-constraint guidance state
@@ -6038,7 +6082,7 @@ function handleCSVFile(event) {
 			const speedMode = speedModeRaw.toUpperCase();
 			const speedVal = parseFloat(speedValRaw);
 
-			let gs, mach, spdMode, clearedMach, clearedIas, freePerf = false;
+			let gs, ias, mach, spdMode, clearedMach, clearedIas, freePerf = false;
 
 			if (speedMode === 'M' && speedValRaw !== '') {
 				// Explicit Mach restriction
@@ -6046,6 +6090,7 @@ function handleCSVFile(event) {
 				spdMode = 'MACH';
 				clearedMach = mach;
 				clearedIas = null;
+				ias = null;
 				const { tas } = machToSpeeds(mach, fl);
 				gs = clamp(tas, 200, 550);
 
@@ -6055,6 +6100,7 @@ function handleCSVFile(event) {
 				spdMode = 'IAS';
 				clearedIas = ias;
 				clearedMach = null;
+				ias = clamp(ias, 180, 350);
 				mach = null;
 				const tas = iasToTas(ias, flToAltFt(fl));
 				gs = clamp(tas, 200, 550);
@@ -6070,6 +6116,7 @@ function handleCSVFile(event) {
 					spdMode = 'MACH';
 					clearedMach = null;
 					clearedIas = null;
+					ias = null;
 					mach = perf.cruiseMach;
 					const T = isaTemp(altFtEst);
 					gs = clamp(Math.round(perf.cruiseMach * 38.967 * Math.sqrt(T)), 280, 550);
@@ -6079,6 +6126,7 @@ function handleCSVFile(event) {
 					clearedIas = null;
 					clearedMach = null;
 					mach = null;
+					ias = perf.climbIAS;
 					gs = clamp(iasToTas(perf.climbIAS, altFtEst), 200, 550);
 				}
 				crossoverAlt = xover;   // pre-cache so no recalc needed on first tick
@@ -6132,7 +6180,7 @@ function handleCSVFile(event) {
 
 			newAircraft.push({
 				id: _acIdCtr++, callsign,
-				hdg: hdgN, gs: gsN, mach,
+				hdg: hdgN, gs: gsN, mach, ias,
 				x: xN, y: yN, fl,
 				type: csvType, wtc: csvWtc,
 				lx: (Math.random() - 0.5) * 18,
