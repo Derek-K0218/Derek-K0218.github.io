@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Cascadia+Mono:wght@500&display=swap" rel="stylesheet">
+	<title>ATC Simulator 1.1.0</title>
+	<style>
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			background: #0d1117;
+			color: #ffffff;
+			font-family: 'Cascadia Mono', monospace;
+			height: 100dvh;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+
+		h1 {
+			text-align: center;
+			padding: 10px 12px;
+			font-size: 1.3rem;
+			letter-spacing: 2px;
+			color: #ffffff;
+			border-bottom: 1px solid #21262d;
+			background: #3f7196;
+		}
+
+		/* Base style — all buttons inherit this */
+		button {
+			background: #3f7196;
+			border: 2px outset;
+			border-color: #fff #222 #222 #fff;
+			color: #fff;
+			font-size: 0.80rem;
+			font-weight: 500;
+			padding: 2px 2px;
+			cursor: pointer;
+			font-family: 'Cascadia Mono', monospace;
+			transition: background 0.15s, border-color 0.15s, color 0.15s;
+		}
+
+		button:hover:not(:disabled) {
+			background: #5b7b9b;
+			color: #fff;
+		}
+
+		button:focus {
+			outline: 2px solid #ff0;
+		}
+
+		button:disabled {
+			opacity: 0.35;
+			cursor: not-allowed;
+			border: 2px solid;
+			border-color: #222;
+			color: #ccc;
+		}
+
+		.subtitle {
+			text-align: center;
+			font-size: 0.75rem;
+			color: #8b949e;
+			padding: 4px 0 10px;
+			background: #3f7196;
+		}
+
+		.main {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.canvas-wrap {
+			order: 1;
+			flex: 0 0 40vh;
+			position: relative;
+			background: #0c0c0c;
+			overflow: hidden;
+		}
+
+		.controls {
+			order: 2;
+			flex: 1;
+			min-height: 0;
+			background: #3f7196;
+			border-top: 1px solid #21262d;
+			overflow-y: auto;
+			padding: 12px;
+			padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+			padding-top: 0px
+		}
+
+		@media (min-width: 768px) {
+			.main {
+				flex-direction: row;
+			}
+
+			.controls {
+				order: 0;
+				width: 450px;
+				flex: none;
+				border-top: none;
+				border-right: 1px solid #21262d;
+				padding: 16px;
+				overflow-y: auto;
+				padding-top: 0px
+			}
+
+			.canvas-wrap {
+				order: 0;
+				flex: 1;
+				height: auto;
+			}
+		}
+
+		@media (max-height: 500px) and (orientation: landscape) {
+			.main {
+				flex-direction: row;
+			}
+
+			.controls {
+				order: 0;
+				width: 300px;
+				flex: none;
+				border-top: none;
+				border-right: 1px solid #21262d;
+				padding: 10px;
+				overflow-y: auto;
+				max-height: 100dvh;
+				padding-top: 0px
+			}
+
+			.canvas-wrap {
+				order: 0;
+				flex: 1;
+				height: auto;
+			}
+		}
+
+		.ac-panel {
+			background: #395e79;
+			border: 2px solid #333333;
+			margin-bottom: 14px;
+			overflow: hidden;
+		}
+
+		.ac-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 11px 14px;
+			cursor: pointer;
+			user-select: none;
+			transition: background 0.15s;
+		}
+
+		.ac-header:hover {
+			background: #3f7196;
+		}
+
+		.ac-header-left {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 0.85rem;
+			font-weight: 600;
+		}
+
+		.dot-a {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #58a6ff;
+			display: inline-block;
+			flex-shrink: 0;
+		}
+
+		.dot-b {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #f78166;
+			display: inline-block;
+			flex-shrink: 0;
+		}
+
+		.ac-toggle {
+			font-size: 0.72rem;
+			color: #8b949e;
+			background: #21262d;
+			border: 1px solid #30363d;
+			padding: 2px 2px;
+			cursor: pointer;
+			white-space: nowrap;
+			transition: background 0.15s, color 0.15s;
+		}
+
+		.ac-toggle:hover {
+			background: #30363d;
+			color: #e6edf3;
+		}
+
+		.ac-toggle.open {
+			background: #1f6feb;
+			color: #ffffff;
+		}
+
+		.ac-body {
+			padding: 0 14px 14px;
+			display: none;
+		}
+
+		.ac-body.open {
+			display: block;
+		}
+
+		.field {
+			margin-bottom: 10px;
+		}
+
+		.field .field-label {
+			font-size: 0.73rem;
+			color: #8b949e;
+			display: block;
+			margin-bottom: 4px;
+		}
+
+		.field .field-row {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		/* ── Range Slider ─────────────────────────── */
+		input[type=range] {
+			-webkit-appearance: none;
+			appearance: none;
+			height: 4px;
+			background: none;
+			border-radius: 9999px;
+			outline: none;
+			cursor: pointer;
+		}
+
+		/* Track fill colour — Chrome/Safari */
+		input[type=range]::-webkit-slider-runnable-track {
+			height: 4px;
+			background: #000;
+			border-radius: 9999px;
+		}
+
+		/* Track — Firefox */
+		input[type=range]::-moz-range-track {
+			height: 4px;
+			background: #000;
+			border-radius: 9999px;
+			border: none;
+		}
+
+		/* Thumb — Chrome/Safari */
+		input[type=range]::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			appearance: none;
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #fff;
+			cursor: pointer;
+			margin-top: -4px;
+			/* centres thumb on track */
+			transition: background 0.15s, transform 0.15s;
+		}
+
+		input[type=range]::-webkit-slider-thumb:hover {
+			background: #ccc;
+			transform: scale(1.2);
+		}
+
+		/* Thumb — Firefox */
+		input[type=range]::-moz-range-thumb {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #fff;
+			cursor: pointer;
+			transition: background 0.15s, transform 0.15s;
+		}
+
+		input[type=range]::-moz-range-thumb:hover {
+			background: #ccc;
+			transform: scale(1.2);
+		}
+
+		/* Progress fill (the filled left portion) — Firefox only */
+		input[type=range]::-moz-range-progress {
+			background: #ccc;
+			height: 4px;
+			border-radius: 9999px;
+		}
+
+		/* Focus ring */
+		input[type=range]:focus-visible {
+			outline: 2px solid #ff0;
+		}
+
+		input[type=number],
+		input[type=text] {
+			width: 72px;
+			background: #999;
+			border: 2px inset;
+			border-color: #222 #fff #fff #222;
+			color: #fff;
+			font-size: 0.80rem;
+			font-weight: 500;
+			padding: 2px 2px;
+			cursor: pointer;
+			font-family: 'Cascadia Mono', monospace;
+			text-align: right;
+			appearance: textfield;
+		}
+
+		input[type=text] {
+			text-align: left;
+		}
+
+		input[type=number]::-webkit-inner-spin-button,
+		input[type=number]::-webkit-outer-spin-button {
+			-webkit-appearance: none;
+			margin: 0;
+		}
+
+		input[type=number]:focus,
+		input[type=text]:focus {
+			outline: 2px solid #ff0;
+		}
+
+		.panel-hdr {
+			font-size: 1rem;
+			color: #000;
+			font-weight: 600;
+			padding: 2px 0;
+		}
+
+		.field .unit {
+			font-size: 0.7rem;
+			color: #8b949e;
+			margin-top: 3px;
+		}
+
+		select {
+			background: #3f7196;
+			border: 2px solid #222;
+			border-right: 2px solid #fff;
+			border-bottom: 2px solid #fff;
+			color: #fff;
+			font-family: 'Cascadia Mono', monospace;
+			font-size: 0.80rem;
+			font-weight: 500;
+			padding: 2px 2px;
+			cursor: pointer;
+			appearance: none;
+			-webkit-appearance: none;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffffff'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: right 8px center;
+			padding-left: 6px;
+			padding-right: 24px;
+		}
+
+		select:focus {
+			outline: 2px solid #ff0;
+		}
+
+		.grid-panel {
+			background: #0d1117;
+			border: 1px solid #30363d;
+			border-radius: 8px;
+			padding: 12px 14px;
+			margin-bottom: 14px;
+		}
+
+		.grid-panel h3 {
+			font-size: 0.78rem;
+			color: #ffffff;
+			margin-bottom: 10px;
+			letter-spacing: 1px;
+		}
+
+		.zoom-row {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 6px;
+		}
+
+		.zoom-row label {
+			font-size: 0.73rem;
+			color: #8b949e;
+			white-space: nowrap;
+			min-width: 60px;
+		}
+
+		.zoom-row input[type=range] {
+			flex: 1;
+			accent-color: #58a6ff;
+			cursor: pointer;
+		}
+
+		.zoom-val {
+			font-size: 0.82rem;
+			color: #e6edf3;
+			font-weight: 700;
+			min-width: 62px;
+			text-align: right;
+		}
+
+		.result-box {
+			background: #0d1117;
+			border: 1px solid #21262d;
+			border-radius: 8px;
+			padding: 14px;
+			margin-bottom: 14px;
+		}
+
+		.result-box h3 {
+			font-size: 0.78rem;
+			color: #8b949e;
+			margin-bottom: 12px;
+			letter-spacing: 1px;
+		}
+
+		.metric {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 9px 0;
+			border-bottom: 1px solid #21262d;
+		}
+
+		.metric:last-child {
+			border-bottom: none;
+		}
+
+		.metric-label {
+			font-size: 0.75rem;
+			color: #8b949e;
+		}
+
+		.metric-val {
+			font-size: 1.05rem;
+			font-weight: 700;
+		}
+
+		.val-blue {
+			color: #58a6ff;
+		}
+
+		.sep-bar {
+			height: 7px;
+			border-radius: 4px;
+			margin-top: 10px;
+			background: #21262d;
+			overflow: hidden;
+		}
+
+		.sep-fill {
+			height: 100%;
+			border-radius: 4px;
+			transition: width 0.3s, background 0.3s;
+		}
+
+		.sep-label {
+			font-size: 0.68rem;
+			color: #8b949e;
+			margin-top: 4px;
+			display: flex;
+			justify-content: space-between;
+		}
+
+		.btn-row {
+			display: flex;
+			gap: 8px;
+			margin-top: 6px;
+		}
+
+		canvas {
+			display: block;
+			width: 100%;
+			height: 100%;
+			touch-action: none;
+		}
+
+		.info-bar {
+			position: absolute;
+			top: 10px;
+			right: 14px;
+			font-size: 0.72rem;
+			color: #8b949e;
+			background: #161b22cc;
+			border: 1px solid #21262d;
+			border-radius: 6px;
+			padding: 6px 10px;
+			line-height: 1.6;
+			pointer-events: none;
+			white-space: pre;
+		}
+
+		.place-active,
+		button.active {
+			background: #3f7196 !important;
+			border: 2px inset;
+			border-color: #222 #fff #fff #222 !important;
+			color: #fff !important;
+		}
+
+		.wp-btn {
+			background: #333;
+			color: #d29922;
+			padding: 4px 9px;
+			font-size: 0.72rem;
+			font-family: 'Cascadia Mono', monospace;
+			cursor: not-allowed;
+			opacity: 0.4;
+			pointer-events: none;
+			/* blocks ALL mouse interaction when disabled */
+			transition: all 0.15s;
+			outline: none;
+		}
+
+		.wp-btn:not(:disabled) {
+			opacity: 1;
+			cursor: pointer;
+			pointer-events: auto;
+			/* re-enables mouse interaction */
+		}
+
+		.wp-btn:not(:disabled):hover {
+			background: #2d2a1a;
+			border-color: #e3b341;
+			color: #e3b341;
+		}
+
+		.wp-btn:not(:disabled):focus-visible {
+			outline: 2px solid #d29922;
+			outline-offset: 2px;
+		}
+
+		.wp-btn:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+			pointer-events: none;
+			outline: none;
+		}
+
+		.ac-badge {
+			font-size: 0.85rem;
+			color: #222;
+			font-weight: 600;
+			border: 2px double #222;
+			padding: 2px 4px;
+			margin-left: auto;
+		}
+
+		.empty-hint {
+			text-align: center;
+			padding: 18px 0;
+			color: #ccc;
+			font-size: 0.80rem;
+			line-height: 1.8;
+		}
+
+		/* ── Add Aircraft Popup ─────────────────────────── */
+		#addAcModel {
+			display: none;
+			position: fixed;
+			inset: 0;
+			z-index: 10000;
+			background: rgba(0, 0, 0, 0.55);
+			align-items: center;
+			justify-content: center;
+		}
+
+		#addAcModel.open {
+			display: flex;
+		}
+
+		#addAcModel .model-box {
+			background: #3f7196;
+			border: 6px ridge #4e81a8;
+			width: min(340px, 96vw);
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+			font-family: 'Cascadia Mono', monospace;
+		}
+
+		#addAcModel .model-title {
+			font-size: 1rem;
+			font-weight: 700;
+			letter-spacing: 1.5px;
+			color: #fff;
+			text-align: center;
+			border: 2px outset #4e81a8;
+			padding: 4px;
+			margin-bottom: 3px;
+		}
+
+		#addAcModel .model-callsign {
+			font-size: 1.1rem;
+			font-weight: 700;
+			font-family: 'Cascadia Mono', monospace;
+			color: #fff;
+			text-align: center;
+			margin: 10px;
+			letter-spacing: 2px;
+		}
+
+		#addAcModel .mf {
+			margin: 0px 10px 10px;
+		}
+
+		#addAcModel .mf label {
+			display: block;
+			font-size: 0.80rem;
+			color: #222;
+			margin-bottom: 3px;
+		}
+
+		#addAcModel .mf input,
+		#addAcModel .mf select {
+			width: 100%;
+			background: #3f7196;
+			border: 2px inset;
+			border-color: #222 #fff #fff #222;
+			color: #fff;
+			font-size: 0.80rem;
+			font-weight: 500;
+			padding: 2px 4px;
+			cursor: pointer;
+			font-family: 'Cascadia Mono', monospace;
+			box-sizing: border-box;
+		}
+
+		#addAcModel .mf input {
+			background: #999;
+		}
+
+		#addAcModel .mf input:disabled {
+			cursor: not-allowed;
+			border: 2px solid;
+			border-color: #ccc;
+			opacity: 0.4;
+		}
+
+		#addAcModel .mf select {
+			appearance: none;
+			-webkit-appearance: none;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffffff'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: right 8px center;
+		}
+
+		#addAcModel .mf input:focus,
+		#addAcModel .mf select:focus {
+			outline: 2px solid #ff0;
+		}
+
+		#addAcModel .mf .hint {
+			font-size: 0.68rem;
+			color: #ccc;
+			margin-top: 3px;
+		}
+
+		#addAcModel .mf-row {
+			display: flex;
+			gap: 8px;
+		}
+
+		#addAcModel .mf-row .mf {
+			flex: 1;
+		}
+
+		#addAcModel .model-btns {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			margin-top: 16px;
+		}
+	</style>
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-title" content="ATC Sim">
+</head>
+
+<body>
+
+	<div class="main">
+		<div class="canvas-wrap">
+			<canvas id="radarcanvas"></canvas>
+		</div>
+		<div class="controls">
+			<h1>ATC SIMULATOR</h1>
+			<div class="panel" style="padding:8px 0px;border-bottom: 1px solid #222;" id="acPanel">
+				<div class="panel-hdr">
+					<span>✈ AIRCRAFT</span>
+					<select id="acSelect" onchange="onAcSelectChange()" style="flex:1">
+						<option value="">— no aircraft —</option>
+					</select>
+					<span class="ac-badge" id="acBadge">0 / 50</span>
+				</div>
+				<div class="panel-body" id="acPanelBody">
+					<div id="noAcHint" class="empty-hint">No aircraft on map / selected.</div>
+					<div id="acFields" style="display:none">
+						<div class="field"><span class="lbl">HEADING</span>
+							<div class="row">
+								<canvas id="compass_sel" width="72" height="72"
+									style="cursor:crosshair;border-radius:50%;flex-shrink:0;"
+									onmousedown="compassDown(event,'_sel')"
+									ontouchstart="compassDown(event.touches[0],'_sel')"></canvas>
+								<input type="number" id="hdg_sel" onfocus="this.select()" onkeydown="if(event.key === 'Enter') {
+										if (this.value > 359 || this.value < 0) {
+											this.value = 0;
+										}
+										this.value = Math.round(this.value);
+										updateAc('hdg',Math.round(this.value));
+										} else if (event.key === 'Escape') {
+											this.value = aircraft[selectedAcId].hdg;}">
+							</div>
+							<div style="font-size:0.7rem;color:#8b949e;margin-top:3px;">degrees (0–359)</div>
+						</div>
+						<div class="field">
+							<div
+								style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+								<span class="lbl" data-spd-lbl>MACH NUMBER</span>
+								<button id="spdModeBtn"
+									onclick="setGlobalSpdMode(globalSpdMode === 'MACH' ? 'IAS' : 'MACH')">SPD
+									MACH</button>
+							</div>
+							<div class="row" style="flex:1">
+								<input type="range" id="machsl" min="0.70" max="0.90" step="0.01"
+									oninput="updateAcSpd(this.value)">
+								<input type="number" id="machn" min="0.70" max="0.90" step="0.01" style="width:50px"
+									onfocus="this.select()" onkeydown="if(event.key === 'Enter') {
+										if (this.value > 0.90 || this.value < 0.70) {
+											this.value = 0.70
+										}
+										this.value = parseFloat(this.value).toFixed(2);
+										updateAcSpdN(this.value);
+										}">
+							</div>
+							<div data-spd-unit style="font-size:0.7rem;color:#ccc;margin-top:2px;">
+								RANGE 0.70 - 0.90
+							</div>
+						</div>
+
+						<!-- Derived speeds display -->
+						<div class="field">
+							<span class="lbl">DERIVED SPEEDS</span>
+							<div
+								style="display:flex;gap:10px;font-size:0.78rem;font-weight:600;margin-top:2px;flex-wrap:wrap;">
+								<span style="color:#222">IAS</span>
+								<span id="iasDisplay" style="color:#e6edf3">--- kt</span>
+								<span style="color:#222;margin-left:4px">TAS</span>
+								<span id="tasDisplay" style="color:#e6edf3">--- kt</span>
+								<span style="color:#222;margin-left:4px">GS</span>
+								<span id="gsDisplay" style="color:#e6edf3">--- kt</span>
+							</div>
+							<div style="font-size:0.75rem;color:#ccc;margin-top:2px">TAS·IAS·GS (✕ WIND MODEL)
+							</div>
+						</div>
+
+						<div class="field" style="display:none"><span class="lbl">Position X (East/West NM)</span>
+							<div class="row"><input type="range" id="x_sl" min="-350" max="350" value="0"
+									oninput="updateAc('x',this.value)">
+								<input type="number" id="x_n" min="-350" max="350" value="0"
+									oninput="updateAcN('x',this.value,-350,350,0)">
+							</div>
+						</div>
+						<div class="field" style="display:none"><span class="lbl">Position Y (North/South NM)</span>
+							<div class="row"><input type="range" id="y_sl" min="-350" max="350" value="0"
+									oninput="updateAc('y',this.value)"><input type="number" id="y_n" min="-350"
+									max="350" value="0" oninput="updateAcN('y',this.value,-350,350,0)"></div>
+						</div>
+
+						<div class="field"><span class="lbl">FLIGHT LEVEL</span>
+							<div class="row" style="width:150px;"><select id="fl_sel"
+									onchange="updateAc('fl',this.value)"></select>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="panel" style="padding-top:6px;padding-bottom:6px;border-bottom: 1px solid #222;"
+				id="placePanel">
+				<div class="panel-hdr">PLACE &amp; ADD AIRCRAFT</div>
+				<div class="panel-body">
+					<div style="font-size:0.75rem;color:#cccccc;margin-bottom:6px;">Snaps to waypoints within 20 px
+					</div>
+					<div style="display:flex;gap:8px;margin-bottom:6px;min-height:30px">
+						<button id="addAcBtn" onclick="toggleAddMode()" style="width:150px;">+ Add Aircraft</button>
+						<button id="placeBtnSel" onclick="setPlaceMode('SEL')" style="width:150px;">✈︎ Place
+							Selected</button>
+						<button id="hdgBtnSel" onclick="setHeadingMode('SEL')" style="width:150px;">𖦏 Aim
+							Selected</button>
+					</div>
+					<div style="font-size:0.80rem;color:#cccccc;margin-bottom:6px;">WAYPOINTS</div>
+					<div style="display:flex;flex-wrap:wrap;gap:5px;max-height:130px;overflow-y:auto;">
+						<button onclick="placeAtWaypoint('ABBEY')" class="wp-btn" disabled>△ ABBEY</button>
+						<button onclick="placeAtWaypoint('AKOTA')" class="wp-btn" disabled>△ AKOTA</button>
+						<button onclick="placeAtWaypoint('ALDOM')" class="wp-btn" disabled>△ ALDOM</button>
+						<button onclick="placeAtWaypoint('ALLEY')" class="wp-btn" disabled>△ ALLEY</button>
+						<button onclick="placeAtWaypoint('ANPOG')" class="wp-btn" disabled>△ ANPOG</button>
+						<button onclick="placeAtWaypoint('ASOBA')" class="wp-btn" disabled>▲ ASOBA</button>
+						<button onclick="placeAtWaypoint('ATBUD')" class="wp-btn" disabled>△ ATBUD</button>
+						<button onclick="placeAtWaypoint('AVMUP')" class="wp-btn" disabled>△ AVMUP</button>
+						<button onclick="placeAtWaypoint('BEBEM')" class="wp-btn" disabled>△ BEBEM</button>
+						<button onclick="placeAtWaypoint('BEKOL')" class="wp-btn" disabled>▲ BEKOL</button>
+						<button onclick="placeAtWaypoint('BESDA')" class="wp-btn" disabled>△ BESDA</button>
+						<button onclick="placeAtWaypoint('BETTY')" class="wp-btn" disabled>△ BETTY</button>
+						<button onclick="placeAtWaypoint('BIGEX')" class="wp-btn" disabled>△ BIGEX</button>
+						<button onclick="placeAtWaypoint('BIMIX')" class="wp-btn" disabled>△ BIMIX</button>
+						<button onclick="placeAtWaypoint('BUMDI')" class="wp-btn" disabled>△ BUMDI</button>
+						<button onclick="placeAtWaypoint('CANTO')" class="wp-btn" disabled>△ CANTO</button>
+						<button onclick="placeAtWaypoint('CARSO')" class="wp-btn" disabled>△ CARSO</button>
+						<button onclick="placeAtWaypoint('CHALI')" class="wp-btn" disabled>△ CHALI</button>
+						<button onclick="placeAtWaypoint('COMBI')" class="wp-btn" disabled>△ COMBI</button>
+						<button onclick="placeAtWaypoint('COMBO')" class="wp-btn" disabled>△ COMBO</button>
+						<button onclick="placeAtWaypoint('CONGA')" class="wp-btn" disabled>△ CONGA</button>
+						<button onclick="placeAtWaypoint('COTON')" class="wp-btn" disabled>△ COTON</button>
+						<button onclick="placeAtWaypoint('CYBER')" class="wp-btn" disabled>△ CYBER</button>
+						<button onclick="placeAtWaypoint('CYRUS')" class="wp-btn" disabled>△ CYRUS</button>
+						<button onclick="placeAtWaypoint('DADON')" class="wp-btn" disabled>△ DADON</button>
+						<button onclick="placeAtWaypoint('DAGBU')" class="wp-btn" disabled>△ DAGBU</button>
+						<button onclick="placeAtWaypoint('DAKTO')" class="wp-btn" disabled>△ DAKTO</button>
+						<button onclick="placeAtWaypoint('DALOL')" class="wp-btn" disabled>△ DALOL</button>
+						<button onclick="placeAtWaypoint('DALRA')" class="wp-btn" disabled>△ DALRA</button>
+						<button onclick="placeAtWaypoint('DASON')" class="wp-btn" disabled>△ DASON</button>
+						<button onclick="placeAtWaypoint('DONDA')" class="wp-btn" disabled>△ DONDA</button>
+						<button onclick="placeAtWaypoint('DOSUT')" class="wp-btn" disabled>▲ DOSUT</button>
+						<button onclick="placeAtWaypoint('DOTMI')" class="wp-btn" disabled>▲ DOTMI</button>
+						<button onclick="placeAtWaypoint('DULOP')" class="wp-btn" disabled>▲ DULOP</button>
+						<button onclick="placeAtWaypoint('DUMEP')" class="wp-btn" disabled>△ DUMEP</button>
+						<button onclick="placeAtWaypoint('DUMOL')" class="wp-btn" disabled>△ DUMOL</button>
+						<button onclick="placeAtWaypoint('EGEMU')" class="wp-btn" disabled>△ EGEMU</button>
+						<button onclick="placeAtWaypoint('ELATO')" class="wp-btn" disabled>▲ ELATO</button>
+						<button onclick="placeAtWaypoint('ENBOK')" class="wp-btn" disabled>△ ENBOK</button>
+						<button onclick="placeAtWaypoint('ENPET')" class="wp-btn" disabled>△ ENPET</button>
+						<button onclick="placeAtWaypoint('ENROM')" class="wp-btn" disabled>△ ENROM</button>
+						<button onclick="placeAtWaypoint('ENVAR')" class="wp-btn" disabled>▲ ENVAR</button>
+						<button onclick="placeAtWaypoint('EPDOS')" class="wp-btn" disabled>△ EPDOS</button>
+						<button onclick="placeAtWaypoint('EPKAL')" class="wp-btn" disabled>△ EPKAL</button>
+						<button onclick="placeAtWaypoint('EXOTO')" class="wp-btn" disabled>△ EXOTO</button>
+						<button onclick="placeAtWaypoint('EXTRA')" class="wp-btn" disabled>△ EXTRA</button>
+						<button onclick="placeAtWaypoint('FISHA')" class="wp-btn" disabled>△ FISHA</button>
+						<button onclick="placeAtWaypoint('GAMBA')" class="wp-btn" disabled>△ GAMBA</button>
+						<button onclick="placeAtWaypoint('GIVIV')" class="wp-btn" disabled>△ GIVIV</button>
+						<button onclick="placeAtWaypoint('GOBBI')" class="wp-btn" disabled>△ GOBBI</button>
+						<button onclick="placeAtWaypoint('HOCKY')" class="wp-btn" disabled>△ HOCKY</button>
+						<button onclick="placeAtWaypoint('IDOSI')" class="wp-btn" disabled>△ IDOSI</button>
+						<button onclick="placeAtWaypoint('IDUMA')" class="wp-btn" disabled>△ IDUMA</button>
+						<button onclick="placeAtWaypoint('IGLEG')" class="wp-btn" disabled>△ IGLEG</button>
+						<button onclick="placeAtWaypoint('IKELA')" class="wp-btn" disabled>▲ IKELA</button>
+						<button onclick="placeAtWaypoint('ISBAN')" class="wp-btn" disabled>△ ISBAN</button>
+						<button onclick="placeAtWaypoint('ISBIG')" class="wp-btn" disabled>△ ISBIG</button>
+						<button onclick="placeAtWaypoint('KAPLI')" class="wp-btn" disabled>▲ KAPLI</button>
+						<button onclick="placeAtWaypoint('LANDA')" class="wp-btn" disabled>△ LANDA</button>
+						<button onclick="placeAtWaypoint('LAPUG')" class="wp-btn" disabled>△ LAPUG</button>
+						<button onclick="placeAtWaypoint('LARIT')" class="wp-btn" disabled>△ LARIT</button>
+						<button onclick="placeAtWaypoint('LAXET')" class="wp-btn" disabled>△ LAXET</button>
+						<button onclick="placeAtWaypoint('LEGOD')" class="wp-btn" disabled>△ LEGOD</button>
+						<button onclick="placeAtWaypoint('LEKEN')" class="wp-btn" disabled>△ LEKEN</button>
+						<button onclick="placeAtWaypoint('LELIM')" class="wp-btn" disabled>▲ LELIM</button>
+						<button onclick="placeAtWaypoint('LENKO')" class="wp-btn" disabled>△ LENKO</button>
+						<button onclick="placeAtWaypoint('LH')" class="wp-btn" disabled>△ LH</button>
+						<button onclick="placeAtWaypoint('LIMSU')" class="wp-btn" disabled>△ LIMSU</button>
+						<button onclick="placeAtWaypoint('MADRU')" class="wp-btn" disabled>△ MADRU</button>
+						<button onclick="placeAtWaypoint('MAGOG')" class="wp-btn" disabled>△ MAGOG</button>
+						<button onclick="placeAtWaypoint('MALKA')" class="wp-btn" disabled>△ MALKA</button>
+						<button onclick="placeAtWaypoint('MAPLE')" class="wp-btn" disabled>△ MAPLE</button>
+						<button onclick="placeAtWaypoint('MEBKI')" class="wp-btn" disabled>△ MEBKI</button>
+						<button onclick="placeAtWaypoint('MIGUG')" class="wp-btn" disabled>△ MIGUG</button>
+						<button onclick="placeAtWaypoint('MIKIN')" class="wp-btn" disabled>△ MIKIN</button>
+						<button onclick="placeAtWaypoint('MORTU')" class="wp-btn" disabled>△ MORTU</button>
+						<button onclick="placeAtWaypoint('MULET')" class="wp-btn" disabled>△ MULET</button>
+						<button onclick="placeAtWaypoint('MUMOT')" class="wp-btn" disabled>△ MUMOT</button>
+						<button onclick="placeAtWaypoint('MYWAY')" class="wp-btn" disabled>△ MYWAY</button>
+						<button onclick="placeAtWaypoint('NEDLE')" class="wp-btn" disabled>△ NEDLE</button>
+						<button onclick="placeAtWaypoint('NLG')" class="wp-btn" disabled>△ NLG</button>
+						<button onclick="placeAtWaypoint('NOBAD')" class="wp-btn" disabled>△ NOBAD</button>
+						<button onclick="placeAtWaypoint('NOMAN')" class="wp-btn" disabled>▲ NOMAN</button>
+						<button onclick="placeAtWaypoint('NOPER')" class="wp-btn" disabled>△ NOPER</button>
+						<button onclick="placeAtWaypoint('NUDPI')" class="wp-btn" disabled>△ NUDPI</button>
+						<button onclick="placeAtWaypoint('OSUMO')" class="wp-btn" disabled>△ OSUMO</button>
+						<button onclick="placeAtWaypoint('PECAN')" class="wp-btn" disabled>△ PECAN</button>
+						<button onclick="placeAtWaypoint('PONTI')" class="wp-btn" disabled>△ PONTI</button>
+						<button onclick="placeAtWaypoint('POU')" class="wp-btn" disabled>△ POU</button>
+						<button onclick="placeAtWaypoint('POVAM')" class="wp-btn" disabled>△ POVAM</button>
+						<button onclick="placeAtWaypoint('RAGSO')" class="wp-btn" disabled>△ RAGSO</button>
+						<button onclick="placeAtWaypoint('RECON')" class="wp-btn" disabled>△ RECON</button>
+						<button onclick="placeAtWaypoint('ROBIN')" class="wp-btn" disabled>△ ROBIN</button>
+						<button onclick="placeAtWaypoint('ROCCA')" class="wp-btn" disabled>△ ROCCA</button>
+						<button onclick="placeAtWaypoint('RUSBI')" class="wp-btn" disabled>△ RUSBI</button>
+						<button onclick="placeAtWaypoint('SABNO')" class="wp-btn" disabled>▲ SABNO</button>
+						<button onclick="placeAtWaypoint('SAMAS')" class="wp-btn" disabled>△ SAMAS</button>
+						<button onclick="placeAtWaypoint('SAMMI')" class="wp-btn" disabled>△ SAMMI</button>
+						<button onclick="placeAtWaypoint('SANKU')" class="wp-btn" disabled>△ SANKU</button>
+						<button onclick="placeAtWaypoint('SAPAX')" class="wp-btn" disabled>△ SAPAX</button>
+						<button onclick="placeAtWaypoint('SHL')" class="wp-btn" disabled>△ SHL</button>
+						<button onclick="placeAtWaypoint('SIERA')" class="wp-btn" disabled>▲ SIERA</button>
+						<button onclick="placeAtWaypoint('SIKOU')" class="wp-btn" disabled>▲ SIKOU</button>
+						<button onclick="placeAtWaypoint('SKATE')" class="wp-btn" disabled>△ SKATE</button>
+						<button onclick="placeAtWaypoint('SMT')" class="wp-btn" disabled>△ SMT</button>
+						<button onclick="placeAtWaypoint('SONNY')" class="wp-btn" disabled>△ SONNY</button>
+						<button onclick="placeAtWaypoint('SOUSA')" class="wp-btn" disabled>△ SOUSA</button>
+						<button onclick="placeAtWaypoint('SUKER')" class="wp-btn" disabled>△ SUKER</button>
+						<button onclick="placeAtWaypoint('SULUX')" class="wp-btn" disabled>△ SULUX</button>
+						<button onclick="placeAtWaypoint('SURFA')" class="wp-btn" disabled>△ SURFA</button>
+						<button onclick="placeAtWaypoint('TAMOT')" class="wp-btn" disabled>▲ TAMOT</button>
+						<button onclick="placeAtWaypoint('TAPPO')" class="wp-btn" disabled>△ TAPPO</button>
+						<button onclick="placeAtWaypoint('TOFEE')" class="wp-btn" disabled>△ TOFEE</button>
+						<button onclick="placeAtWaypoint('TOLAK')" class="wp-btn" disabled>△ TOLAK</button>
+						<button onclick="placeAtWaypoint('TUBBY')" class="wp-btn" disabled>△ TUBBY</button>
+						<button onclick="placeAtWaypoint('UNTUL')" class="wp-btn" disabled>△ UNTUL</button>
+						<button onclick="placeAtWaypoint('UPRIK')" class="wp-btn" disabled>△ UPRIK</button>
+						<button onclick="placeAtWaypoint('XEMEK')" class="wp-btn" disabled>△ XEMEK</button>
+						<button onclick="placeAtWaypoint('ZUH')" class="wp-btn" disabled>△ ZUH</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="panel" style="padding-top:6px;padding-bottom:6px;border-bottom: 1px solid #222;">
+				<div class="panel-hdr" style="margin-bottom:6px;">MAP DISPLAY</div>
+				<div class="panel-body">
+					<!-- WP Names toggle -->
+					<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px">
+						<!-- <span style="color:#ccc;font-size:0.80rem;">WAYPOINT NAMES</span> -->
+						<button id="wpNamesBtn" onclick="toggleWpNames()"
+							style="font-size:0.90rem; width:90px; height:25px;">
+							WP Names
+						</button>
+					</div>
+					<!-- ROUTES -->
+					<div id="route-toggle-btns"
+						style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px">
+						<span style="color:#ccc;font-size:0.80rem;">ROUTE LINE</span>
+						<button id="btn-route-TRE" onclick="toggleRoute('TRE')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">TRE</button>
+						<button id="btn-route-TRS" onclick="toggleRoute('TRS')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">TRS</button>
+						<button id="btn-route-TRW" onclick="toggleRoute('TRW')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">TRW</button>
+						<button id="btn-route-OVF" onclick="toggleRoute('OVF')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">OVF</button>
+						<button id="btn-route-OVF_OTHER" onclick="toggleRoute('OVF_OTHER')" class="route-btn-off"
+							style="font-size:0.90rem; width:100px; min-height:25px;">OVF
+							Other</button>
+						<button id="btn-route-EX_RTE" onclick="toggleRoute('EX_RTE')" class="place-active"
+							style="font-size:0.90rem; width:80px; min-height:25px;">EX
+							RTE</button>
+					</div>
+					<!-- MAP -->
+					<div id="map-toggle-btns"
+						style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px">
+						<span style="color:#ccc;font-size:0.80rem;">SECTOR MAP</span>
+						<button id="btn-map-TRW" onclick="toggleMap('TRW')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">TRW</button>
+						<button id="btn-map-TRV" onclick="toggleMap('TRV')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">TRV</button>
+						<button id="btn-map-TRD" onclick="toggleMap('TRD')" class="place-active"
+							style="font-size:0.90rem; width:50px; min-height:25px;">TRD</button>
+					</div>
+				</div>
+			</div>
+
+			<div style="display:flex;gap:6px;padding-top:6px;">
+				<button id="rblBtn" onclick="toggleRbl()"
+					style="font-size:0.90rem;min-width:90px;min-height:40px;letter-spacing:1px;">RBL</button>
+				<button id="sepProbeBtn" onclick="toggleSepProbe()"
+					style="font-size:0.90rem;min-width:90px;min-height:40px;letter-spacing:1px;">SEP PROBE</button>
+			</div>
+			<div style="gap:2px;padding-bottom:6px;border-bottom: 1px solid #222;">
+				<div id="rblPrompt" style="font-size:0.80rem;color:#ccc;margin-top:2px;max-height:1em;">
+				</div>
+				<div id="probePrompt" style="font-size:0.80rem;color:#ccc;margin-top:2px;max-height:1em;">
+				</div>
+			</div>
+
+			<div class="panel" id="ScenarioPanel"
+				style="gap:6px;padding-top:6px;padding-bottom:6px;border-bottom: 1px solid #222;">
+				<div class="panel-hdr" style="margin-bottom:6px;">SCENARIO GENERATOR</div>
+				<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+					<label style="font-size:0.80rem;color:#ccc;white-space:nowrap;">ACFT TO GENERATE: </label>
+					<input type="number" id="scenGenCount" min="0" max="50" value="30"
+						style="width:40px;height:25px;text-align:center;" onfocus="this.select()" oninput="if (this.value > 50) { this.value = 50 } else if ( this.value < 0 ) { this.value = 0 };
+							this.value = Math.round(this.value);" onkeydown="if (event.key === 'Escape' ) { this.value = '30'}">
+					<span style="font-size:0.80rem;color:#ccc;"> / 50</span>
+				</div>
+				<button onclick="generateScenario()"
+					style="font-size:0.90rem;cursor:pointer;min-height:40px;width:180px;">
+					GENERATE SCENARIO
+				</button>
+			</div>
+
+			<div class="panel" style="gap:6px;padding-top:6px;padding-bottom:6px;border-bottom: 1px solid #222;">
+				<div class="panel-hdr" style="margin-bottom:6px;">SIMULATION</div>
+				<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+					<button id="simStartBtn" onclick="toggleSim()"
+						style="font-size:0.90rem;width:90px;height:40px;letter-spacing:1px;">START</button>
+					<button onclick="resetSim()" style="font-size:0.90rem;width:90px;height:40px;letter-spacing:1px;">↺
+						RESET</button>
+				</div>
+				<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+					<span style="font-size:0.80rem;color:#ccc;white-space:nowrap;">RADAR SWEEP</span>
+					<select onchange="setRadarInterval(this.value)">
+						<option value="2">2 sec</option>
+						<option value="4" selected>4 sec</option>
+						<option value="8">8 sec</option>
+					</select>
+					<span style="font-size:0.80rem;color:#ccc;margin-left:auto;">TIME ELAPSED:</span>
+					<span id="simClock" style="font-size:0.80rem;font-weight:500;color:#fff;">00:00:00</span>
+				</div>
+				<div style="display:flex;">
+					<span>ACTUAL UTC: <span id="realUtcClock">--:--:--</span></span>
+					<span style="margin-left:auto;">SIM UTC: </span>
+					<input id="simUtcInput" type="text" maxlength="4" placeholder="HHMM"
+						style="width:52px;text-align:center;background:#999;color:#fff;"
+						oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+						onkeydown="if(event.key==='Enter') applySimUtcInput()" onblur="applySimUtcInput()"
+						title="Edit SIM UTC (HHMM) before starting">
+					<span id="simUtcClock">--:--:--</span>
+				</div>
+			</div>
+
+			<div class="btn-row">
+				<button class="main-btn btn-scenario" style="font-size:0.90rem;width:100px;height:40px;"
+					onclick="exportScenarioCSV()">EXPORT CSV</button>
+				<button class="main-btn btn-scenario" style="font-size:0.90rem;width:100px;height:40px;"
+					onclick="importScenarioCSV()">IMPORT CSV</button>
+				<input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCSVFile(event)">
+				<button class="main-btn btn-reset" style="font-size:0.90rem;width:100px;height:40px;margin-left:auto;"
+					onclick="resetAll()">RESET ALL</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- ── Aircraft Right Click Menu ── -->
+	<div id="acContextMenu"
+		style="display:none;position:fixed;z-index:9999;background:#3f7196;border:6px ridge #4e81a8;min-width:180px;">
+		<div id="acContextLabel"
+			style="font-size:0.80rem;color:#ffffff;text-align:center;padding:2px;border:2px outset #4e81a8;"></div>
+		<div style="display:flex;gap:4px;padding:4px 4px;">
+			<button onclick="ctxCRte()"
+				style="width:60px;height:40px;padding:2px 2px;font-size:0.80rem;font-weight:500;cursor:pointer;">
+				CRte</button>
+			<button onclick="ctxModCRte()"
+				style="width:60px;height:40px;padding:2px 2px;font-size:0.80rem;font-weight:500;cursor:pointer;">
+				Mod CRte
+			</button>
+			<button onclick="removeContextAc()"
+				style="width:60px;height:40px;color:rgb(236, 184, 115);padding:2px 2px;font-size:0.80rem;font-weight:500;cursor:pointer;">
+				Del ACFT
+			</button>
+		</div>
+	</div>
+
+	<!-- ── Add Aircraft Model ── -->
+	<div id="addAcModel">
+		<div class="model-box">
+			<div class="model-title">ADD AIRCRAFT</div>
+			<div class="model-callsign" id="aaCallsignDisplay">CPA123</div>
+			<div class="mf">
+				<label>CALLSIGN</label>
+				<input id="aaCallsign" type="text" maxlength="7" autocomplete="off" style="text-transform:uppercase">
+				<div class="hint">Leave blank to auto-generate</div>
+			</div>
+			<div class="mf-row">
+				<div class="mf">
+					<label>ACFT TYPE</label>
+					<select id="aaType"></select>
+				</div>
+				<div class="mf">
+					<label>FLIGHT LEVEL</label>
+					<select id="aaFl"></select>
+				</div>
+			</div>
+			<div class="mf-row">
+				<div class="mf">
+					<label>HEADING (°)</label>
+					<input id="aaHdg" type="number" min="0" max="359" placeholder="0-359" style="text-align:left;">
+					<div class="hint">Blank for random / based on route</div>
+				</div>
+				<div class="mf">
+					<label>SPEED (MACH/IAS)</label>
+					<input id="aaSpd" type="number" maxlength="6" placeholder="0.82 or 280" style="text-align:left;"
+						disabled>
+					<div class="hint">Blank for auto
+					</div>
+				</div>
+			</div>
+			<div class="mf">
+				<label>Route</label>
+				<select id="aaRoute" style="width:100%">
+					<option value="">-- HDG mode (no route) --</option>
+				</select>
+				<div class="hint" id="aaRouteHint" style="font-size:0.68rem;color:#aaa;margin-top:3px"></div>
+			</div>
+			<div class="mf" hidden>
+				<label>Data Block 5th Line</label>
+				<input id="aaFt" type="text" maxlength="30" placeholder="07L SIK">
+			</div>
+			<div class="model-btns">
+				<button class="btn-confirm" onclick="confirmAddAc()" style="width:70px;height:30px;">OK</button>
+				<button class="btn-cancel" onclick="closeaddAcModelCancel()"
+					style="width:70px;height:30px;">Cancel</button>
+			</div>
+		</div>
+	</div>
+	<script type='text/javascript' src='./atc_simulator.js'></script>
+</body>
+
+</html>
