@@ -4701,6 +4701,7 @@ function onAcSelectChange() {
 	if (!isNaN(id)) {
 		selectedAcId = id;
 		refreshPanelFields();
+		refreshPanel();
 		updatePlaceBtns();
 		updateHeadingBtns();
 		drawCompass('_sel');
