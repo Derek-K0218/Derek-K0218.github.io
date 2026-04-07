@@ -2076,7 +2076,7 @@ function handleSpdKey(e, acId) {
 	} else {
 		// IAS: must be 2 digits "xx"
 		if (!/^\d\d$/.test(raw)) { closeActivePopup(); return; };
-		const val = parseInt(raw, 10);
+		const val = parseInt(raw, 10) * 10;
 		if (isNaN(val)) { closeActivePopup(); return; };
 		issueSpdFromPopup(val, acId);
 	}
