@@ -5829,7 +5829,7 @@ function confirmAddAc() {
 
 	// ── Route ─────────────────────────────────────────────────────────
 	const routeSelVal = document.getElementById('aaRoute').value;
-	let route = [], firEntryWp = null, firExitWp = null; routeLabel = null;
+	let route = [], firEntryWp = null, firExitWp = null, routeLabel = null;
 	if (routeSelVal) {
 		const d = JSON.parse(routeSelVal);
 		route = d.waypoints ?? [];
