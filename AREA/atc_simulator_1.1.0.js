@@ -5972,7 +5972,11 @@ document.addEventListener('keydown', function (e) {
 		if (crteAcId) { crteAcId = null; draw(); return; }
 		_hideCtxMenu();
 		if (rblMode) { rblBuilding = null; rblMode = null; rblCursorNM = null; updateRblUI(); draw(); }
-	}
+	} else if (e.key === 'p' || e.key === 'P') {
+        document.getElementById('sepProbeBtn')?.click();
+    } else if (e.key === 'r' || e.key === 'R') {
+        document.getElementById('rblBtn')?.click();
+    }
 });
 
 document.addEventListener('mousedown', e => {
