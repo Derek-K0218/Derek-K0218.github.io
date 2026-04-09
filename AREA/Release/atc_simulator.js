@@ -3518,7 +3518,6 @@ const AIRWAYS = [
 	{ color: '#ffea00', group: 'TRE', waypoints: ['CONGA', 'ELATO'] },	// VMMC-EL
 	{ color: '#ffea00', group: 'TRE', waypoints: ['NUDPI', 'SOUSA', 'BESDA', 'LIMSU', 'LELIM'] },	// VMMC-LL
 	{ color: '#ffea00', group: 'TRE', waypoints: ['NUDPI', 'SOUSA', 'DOTMI'] },	// VMMC-DT
-
 	// EXTERNAL ROUTE
 	{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'GIVIV', 'LH'] },	// A202
 	{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'ISBIG', 'SAMAS'] },	// R339
@@ -4468,6 +4467,54 @@ function generateScenario() {
 	rebuildFdlState();
 	renderFdlPanels();
 	draw();
+}
+
+function generateCantoScenario() {
+	// Clear existing state
+	aircraft.length = 0;
+	probes.length = 0;
+	colourPool = [...PROBE_COLOURS];
+	probeBuilding = null; probeMode = null;
+	selectedAcId = null;
+	simTimeSec = 0; simRunning = false;
+	updateSimClock(); updateSimButtons();
+
+	// Filter SCENARIO_ROUTES to CANTO-bound only
+	const cantoRoutes = SCENARIO_ROUTES.filter(r => r.firExitWp === 'CANTO');
+	if (!cantoRoutes.length) return;
+
+	// Reuse the same count the user set in the UI
+	const targetCount = getScenarioTargetCount();
+
+	// Shuffle routes so distribution is random each time
+	const shuffled = [...cantoRoutes].sort(() => Math.random() - 0.5);
+
+	const committed = [];
+	let placed = 0;
+	let attempts = 0;
+	const maxAttempts = targetCount * 10; // safety net
+
+	while (placed < targetCount && attempts < maxAttempts) {
+		attempts++;
+		const route = shuffled[placed % shuffled.length];
+
+		// Find the matching group config for spacing/FL rules
+		const groupCfg = SCENARIO_GROUPS.find(g => g.group === route.group) ?? {};
+
+		const cand = generateAcOnRoute(route, groupCfg, committed);
+		if (!cand || !cand.length) continue; // spacing conflict, skip
+
+		committed.push({
+			group: route.group,
+			minSpacingNM: groupCfg.minSpacingNM ?? 0,
+			...cand[0]
+		});
+		placed++;
+	}
+
+	commitScenarioAircraft(committed);
+	initialScenarioSnapshot = aircraft.map(a => JSON.parse(JSON.stringify(a)));
+	rebuildFdlState(); renderFdlPanels(); draw();
 }
 
 // NEW: bridge from candidate objects → aircraft[] using spacing + spawner
