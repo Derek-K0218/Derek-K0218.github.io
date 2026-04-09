@@ -3,7 +3,6 @@ const _canvas = document.getElementById('radarcanvas');
 const ZOOM_MIN = 1, ZOOM_MAX = 100;
 let gridSize = 10, offsetX = 0, offsetY = 0, isDragging = false, lastMouseX = 0, lastMouseY = 0, lastTouchDist = null;
 let globalSpdMode = 'MACH'; // 'MACH' or 'IAS'
-const FONT = '13px monospace';
 const LINE_H = 14;
 const MAGVAR = -3;
 const MAX_AC = 50;
@@ -441,6 +440,13 @@ function trackToWaypoint(ac, wpName, perf) {
 	const wp = WAYPOINTS.find(w => w.name === wpName);
 	if (!wp) { ac.route.shift(); return false; }
 
+	// Guard against stale inboundTrack when route changes mid-flight
+	if (ac._lastTrackedWp !== wpName) {
+		ac.inboundTrack = null;
+		ac.inboundSettled = false;
+		ac._lastTrackedWp = wpName;
+	}
+
 	const dx = wp.x - ac.x;
 	const dy = wp.y - ac.y;
 	const dist = Math.hypot(dx, dy);
@@ -461,71 +467,77 @@ function trackToWaypoint(ac, wpName, perf) {
 	if (ac.inboundTrack == null) {
 		const trueBearing = ((Math.atan2(dx, dy) * 180 / Math.PI) + 360) % 360;
 		ac.inboundTrack = (trueBearing - MAGVAR + 360) % 360;
-		ac.inboundSettled = false;   // ← NEW: reset settled flag on new leg
+		ac.inboundSettled = false;
 	}
 
-	// ── Turn rate and radius ─────────────────────────────────────────
+	// ── Turn rate, radius, and lead distance ─────────────────────────
 	const turnRate = calcTurnRate(ac.gs);
 	const turnRadius = ac.gs / (3600 * turnRate * Math.PI / 180);
 
-	// ── Shared XTE + settled logic (used in both branches) ──────────
+	let leadDist = 0;
+	if (outboundTrack !== null) {
+		const turnAngle = ((outboundTrack - ac.inboundTrack + 540) % 360) - 180;
+		leadDist = Math.abs(
+			turnRadius * Math.tan((Math.abs(turnAngle) / 2) * Math.PI / 180)
+		);
+	}
+
+	// ── Shared XTE + settled logic ───────────────────────────────────
 	function getXteDesiredHdg() {
 		const trueInboundRad = ((ac.inboundTrack + MAGVAR + 360) % 360) * Math.PI / 180;
 		const xteNM = -dx * Math.cos(trueInboundRad) + dy * Math.sin(trueInboundRad);
 		const hdgError = Math.abs(((ac.inboundTrack - ac.hdg + 540) % 360) - 180);
 
-		// ── NEW: one-time re-snap after turn completes ───────────────
+		// One-time re-snap after turn completes
 		if (!ac.inboundSettled && hdgError < 1.0) {
 			const trueBearingNow = ((Math.atan2(dx, dy) * 180 / Math.PI) + 360) % 360;
 			ac.inboundTrack = (trueBearingNow - MAGVAR + 360) % 360;
 			ac.inboundSettled = true;
 		}
 
-		// ── NEW: suppress XTE correction while still turning ────────
+		// Suppress XTE correction while still turning
 		const xteGain = ac.inboundSettled ? 30 : 0;
 		const correction = Math.max(-45, Math.min(45, -xteNM * xteGain));
-		const desired = (ac.inboundTrack + correction + 360) % 360;
-
-		return desired;
+		return (ac.inboundTrack + correction + 360) % 360;
 	}
 
-	// ── Lead turn branch ─────────────────────────────────────────────
-	let desiredHdg;
-	if (outboundTrack != null) {
-		const turnAngle = ((outboundTrack - ac.inboundTrack + 540) % 360) - 180;
-		const leadDist = Math.abs(
-			turnRadius * Math.tan((Math.abs(turnAngle) / 2) * Math.PI / 180)
-		);
+	// ── Passage check ────────────────────────────────────────────────
+	const trueInboundRad = ((ac.inboundTrack + MAGVAR + 360) % 360) * Math.PI / 180;
+	const alongTrack = dx * Math.sin(trueInboundRad) + dy * Math.cos(trueInboundRad);
 
-		if (dist <= leadDist + 0.5) {
-			// Within lead turn zone: target outbound track
-			desiredHdg = outboundTrack;
+	// Bearing divergence: if inside lead turn zone and WP is >90° off nose,
+	// the aircraft is already turning away — sequence the waypoint now.
+	let bearingDiverging = false;
+	if (outboundTrack !== null && dist < leadDist + 2.0) {
+		const bearingToWp = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+		const hdgDiff = ((bearingToWp - ac.hdg) + 540) % 360 - 180;
+		bearingDiverging = Math.abs(hdgDiff) > 90;
+	}
 
-			// Waypoint passage check
-			const trueInboundRad = ((ac.inboundTrack + MAGVAR + 360) % 360) * Math.PI / 180;
-			const alongTrack = dx * Math.sin(trueInboundRad) + dy * Math.cos(trueInboundRad);
-			if (alongTrack <= 0) {
-				if (ac.navMode === 'RTE') {
-					ac.route.shift();
-					ac.inboundTrack = outboundTrack;
-					ac.inboundSettled = false;   // ← NEW: reset for next leg
-				}
-				return true;
-			}
+	const captured = dist < 0.5 || alongTrack <= 0 || bearingDiverging;
+
+	if (captured) {
+		if (ac.navMode === 'RTE') {
+			ac.route.shift();
+			ac.inboundTrack = outboundTrack ?? null;
+			ac.inboundSettled = false;
+			ac._lastTrackedWp = ac.route[0] ?? null;
 		} else {
-			// Normal tracking
+			ac.directWp = null;
+			ac.navMode = 'HDG';
+		}
+		return true;
+	}
+
+	// ── Steering logic ───────────────────────────────────────────────
+	let desiredHdg;
+	if (outboundTrack !== null) {
+		if (dist <= leadDist + 0.5) {
+			desiredHdg = outboundTrack;
+		} else {
 			desiredHdg = getXteDesiredHdg();
 		}
 	} else {
-		// No next waypoint — last wp or DIRECT
-		if (dist < 2) {
-			if (ac.navMode === 'RTE') {
-				ac.route.shift();
-				ac.inboundTrack = null;
-				ac.inboundSettled = false;   // ← NEW: reset for next leg
-			}
-			return true;
-		}
 		desiredHdg = getXteDesiredHdg();
 	}
 
@@ -1071,7 +1083,7 @@ function pickSide(acPx, acPy, cpaPx, cpaPy, otherAcPx) {
 
 function drawAcData(ctx, px, py, ac, side) {
 	const { callsign, hdg, gs, fl, lx, ly } = ac;
-	ctx.font = '11px "Cascadia Mono"';
+	ctx.font = '11px "Chivo Mono"';
 	ctx.textAlign = 'left';
 	ctx.textBaseline = 'top';
 	const cW = ctx.measureText('0').width;   // one character width — all gaps/columns use this
@@ -1291,7 +1303,7 @@ function draw() {
 		const acProbes = (cpaMap[ac.id] ?? []);
 		if (acProbes.length) {
 			ctx.save();
-			ctx.font = '11px "Cascadia Mono"';
+			ctx.font = '11px "Chivo Mono"';
 			ctx.textBaseline = 'top';
 			const ICON_OFFSET_X = 7;   // px right of icon centre
 			const ICON_OFFSET_Y = 7;   // px below icon centre
@@ -1352,7 +1364,7 @@ function drawCrteRoute(ctx, S) {
 	const ROUTE_COLOUR = '#b8860b';   // dark goldenrod / brown
 	const LABEL_COLOUR = '#d4a017';
 	ctx.save();
-	ctx.font = 'bold 9px "Cascadia Mono"';
+	ctx.font = 'bold 9px "Chivo Mono"';
 	ctx.textBaseline = 'middle';
 
 	// Build ordered positions: start from aircraft position
@@ -1639,7 +1651,7 @@ function makePopup(x, y, acId, content) {
 		background: '#3f7196', border: '4px ridge #222',
 		textAlign: 'center', width: 'fit-content', maxWidth: '260px',
 		boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
-		fontFamily: 'Cascadia Mono', fontSize: '12px', color: '#fff'
+		fontFamily: 'Chivo Mono', fontSize: '12px', color: '#fff'
 	});
 	div.innerHTML = content;
 
@@ -2390,8 +2402,8 @@ function pointInRect(px, py, rect) {
 
 function drawFdlOverlays(ctx, S) {
 	ensureFdlOverlayState();
-	const titleFont = '12px "Cascadia Mono"';
-	const rowFont = '12px "Cascadia Mono"';
+	const titleFont = '12px "Chivo Mono"';
+	const rowFont = '12px "Chivo Mono"';
 	const lineH = 13;
 	const paddingX = 4;
 	const paddingY = 2;
@@ -2753,7 +2765,7 @@ function tryRemoveProbeByDataBlockClick(e) {
 	const my = (e.clientY - rect.top) * _canvas.height / rect.height;
 	const { toScreen } = getDrawTransform();
 	const ctx = _canvas.getContext('2d');
-	ctx.font = '11px "Cascadia Mono"';
+	ctx.font = '11px "Chivo Mono"';
 
 	for (const ac of aircraft) {
 		const acProbes = probes.filter(p => p.ac1 === ac.id);
@@ -2952,7 +2964,7 @@ function tryRemoveRblByClick(e) {
 	const my = (e.clientY - rect.top) * _canvas.height / rect.height;
 	const { toScreen } = getDrawTransform();
 	const ctx = _canvas.getContext('2d');
-	ctx.font = '11px "Cascadia Mono"';
+	ctx.font = '11px "Chivo Mono"';
 	for (const rbl of rblList) {
 		// resolve live positions
 		const ac1 = rbl.p1.acId !== null ? getAcById(rbl.p1.acId) : null;
@@ -2982,7 +2994,7 @@ function tryRemoveRblByClick(e) {
 
 function drawRbls(ctx, S) {
 	const RBL_C = '#f5c518';
-	ctx.font = '11px "Cascadia Mono"';
+	ctx.font = '11px "Chivo Mono"';
 	ctx.textBaseline = 'top';
 
 	// Draw committed RBLs
@@ -4076,7 +4088,7 @@ function drawRedLine(ctx, S) {
 	ctx.save();
 	ctx.translate(ctr.x, ctr.y);
 	ctx.rotate(angle - Math.PI / 2);
-	ctx.font = `${fontSize}px 'Cascadia Mono', monospace`;
+	ctx.font = `${fontSize}px 'Chivo Mono', monospace`;
 	ctx.fillStyle = '#FF0000';
 	ctx.globalAlpha = 0.5;
 	ctx.textAlign = 'center';
@@ -5195,7 +5207,7 @@ canvasEl.addEventListener('pointerdown', e => {
 			const my = (e.clientY - rect.top) * _canvas.height / rect.height;
 			const { toScreen } = getDrawTransform();
 			const ctx = _canvas.getContext('2d');
-			ctx.font = '11px "Cascadia Mono"'; // must match drawAcData
+			ctx.font = '11px "Chivo Mono"'; // must match drawAcData
 
 			for (const ac of aircraft) {
 				const p = toScreen(ac.x, ac.y);
@@ -5635,7 +5647,7 @@ function openModCrteWpPopup(ac, sx, sy) {
 
 	const items = futureRoute.map((wpName, i) =>
 		`<div onclick="issueModCrteDirect(${ac.id},'${wpName}')"
-              style="padding:5px 10px;cursor:pointer;font-family:"Cascadia Mono";
+              style="padding:5px 10px;cursor:pointer;font-family:"Chivo Mono";
                      font-size:0.80rem;border-radius:4px;color:#d4a017;"
               onmouseover="this.style.background='#2d2a1a'"
               onmouseout="this.style.background=''">
@@ -5649,7 +5661,7 @@ function openModCrteWpPopup(ac, sx, sy) {
 		background: '#161b22', border: '2px solid #222',
 		padding: '8px 6px',
 		boxShadow: '0 4px 20px rgba(0,0,0,0.7)',
-		fontFamily: '"Cascadia Mono", monospace',
+		fontFamily: '"Chivo Mono", monospace',
 		minWidth: '140px',
 	});
 	div.innerHTML = `
@@ -5973,10 +5985,10 @@ document.addEventListener('keydown', function (e) {
 		_hideCtxMenu();
 		if (rblMode) { rblBuilding = null; rblMode = null; rblCursorNM = null; updateRblUI(); draw(); }
 	} else if (e.key === 'p' || e.key === 'P') {
-        document.getElementById('sepProbeBtn')?.click();
-    } else if (e.key === 'r' || e.key === 'R') {
-        document.getElementById('rblBtn')?.click();
-    }
+		document.getElementById('sepProbeBtn')?.click();
+	} else if (e.key === 'r' || e.key === 'R') {
+		document.getElementById('rblBtn')?.click();
+	}
 });
 
 document.addEventListener('mousedown', e => {
@@ -5988,7 +6000,7 @@ window.addEventListener('load', function () {
 	populateFlDropdown();
 	refreshPanel();
 	autoFit();
-	document.fonts.load('11px "Cascadia Mono"').then(() => {
+	document.fonts.load('11px "Chivo Mono"').then(() => {
 		draw();
 		autoFit();
 	});
@@ -6100,11 +6112,10 @@ function handleCSVFile(event) {
 
 			} else if (speedMode === 'IAS' && speedValRaw !== '') {
 				// Explicit IAS restriction
-				const ias = clamp(Math.round(speedVal), 180, 350);
+				ias = clamp(Math.round(speedVal), 180, 350);
 				spdMode = 'IAS';
 				clearedIas = ias;
 				clearedMach = null;
-				ias = clamp(ias, 180, 350);
 				mach = null;
 				const tas = iasToTas(ias, flToAltFt(fl));
 				gs = clamp(tas, 200, 550);
