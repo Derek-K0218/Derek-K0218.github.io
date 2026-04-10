@@ -4487,16 +4487,7 @@ function generateScenario() {
 		for (const cand of groupPool) {
 			if (groupCommitted.length >= groupTarget) break;
 
-			const conflict = allCandidates.concat(groupCommitted).some(existing => {
-				const sameLevel = Math.round(existing.altFt / 1000) === Math.round(flToAltFt(cand.fl) / 1000);
-				if (!sameLevel) return false;
-				const dist = Math.hypot(existing.x - cand.x, existing.y - cand.y);
-				const globalMin = 7;
-				const groupMin = (existing.group === cand.group)
-					? Math.max(existing.minSpacingNM ?? 0, cand.minSpacingNM ?? 0)
-					: 0;
-				return dist < Math.max(globalMin, groupMin);
-			});
+			const conflict = allCandidates.concat(groupCommitted).some(existing => candidatesConflict(existing, cand));
 
 			if (!conflict) groupCommitted.push(cand);
 		}
@@ -4563,16 +4554,7 @@ function generateCantoScenario() {
 	for (const cand of allCandidates) {
 		if (committed.length >= targetCount) break;
 
-		const conflict = committed.some(existing => {
-			const sameLevel = Math.round(existing.altFt / 1000) === Math.round(cand.altFt / 1000);
-			if (!sameLevel) return false;
-			const dist = Math.hypot(existing.x - cand.x, existing.y - cand.y);
-			const globalMin = 7;
-			const groupMin = (existing.group === cand.group)
-				? Math.max(existing.minSpacingNM ?? 0, cand.minSpacingNM ?? 0)
-				: 0;
-			return dist < Math.max(globalMin, groupMin);
-		});
+		const conflict = committed.some(existing => candidatesConflict(existing, cand));
 
 		if (!conflict) committed.push(cand);
 	}
@@ -4585,6 +4567,33 @@ function generateCantoScenario() {
 
 	initialScenarioSnapshot = aircraft.map(a => JSON.parse(JSON.stringify(a)));
 	rebuildFdlState(); renderFdlPanels(); refreshPanel(); draw();
+}
+
+function candidatesConflict(a, b) {
+	// Altitude: use altFt if present (candidates have it), else derive from fl
+	const altA = a.altFt ?? flToAltFt(a.fl);
+	const altB = b.altFt ?? flToAltFt(b.fl);
+
+	// Only apply horizontal spacing when within 1000 ft vertically
+	if (Math.abs(altA - altB) >= 1000) return false;
+
+	const dist = Math.hypot(a.x - b.x, a.y - b.y);
+
+	// 1. Global minimum horizontal: 7 NM
+	const GLOBAL_MIN_NM = 7;
+	if (dist < GLOBAL_MIN_NM) return true;
+
+	// 2. Same-route / same-group extra spacing
+	const sameGroup = a.group && b.group && a.group === b.group;
+	if (sameGroup) {
+		const groupMin = Math.max(
+			a.minSpacingNM ?? 0,
+			b.minSpacingNM ?? 0
+		);
+		if (groupMin > 0 && dist < groupMin) return true;
+	}
+
+	return false;
 }
 
 // NEW: bridge from candidate objects → aircraft[] using spacing + spawner
@@ -4731,64 +4740,29 @@ function spacingGroupKey(groupName) {
 }
 
 function pruneBySpacing(pool) {
-	if (!pool.length) return [];
+    if (!pool.length) return [];
 
-	const groupCfgMap = new Map();
-	SCENARIO_GROUPS.forEach(g => groupCfgMap.set(g.group, g));
+    const groupCfgMap = new Map();
+    SCENARIO_GROUPS.forEach(g => groupCfgMap.set(g.group, g));
 
-	// Sort once for deterministic behaviour: by trackPos if present, else x
-	const sorted = [...pool].sort((a, b) => {
-		if (a.trackPos != null && b.trackPos != null) {
-			return a.trackPos - b.trackPos;
-		}
-		return a.x - b.x;
-	});
+    // Sort by trackPos for deterministic same-route ordering
+    const sorted = [...pool].sort((a, b) => {
+        if (a.trackPos != null && b.trackPos != null) return a.trackPos - b.trackPos;
+        return a.x - b.x;
+    });
 
-	const kept = [];
-
-	for (const cand of sorted) {
-		const candAltFt = flToAltFt(cand.fl);
-		const candBand = sameLevelBand(candAltFt);
-		const rawGroup = cand.scenarioGroup ?? '__none';
-		const spacingKey = spacingGroupKey(rawGroup);
-		const groupCfg = groupCfgMap.get(rawGroup) || null;
-		const groupMinSep = groupCfg?.minSpacingNM ?? 0;
-
-		let tooClose = false;
-
-		for (const other of kept) {
-			const otherAltFt = flToAltFt(other.fl);
-			const otherBand = sameLevelBand(otherAltFt);
-
-			// Only apply horizontal spacing rules when "same level"
-			if (candBand !== otherBand) continue;
-
-			const distNM = Math.hypot(cand.x - other.x, cand.y - other.y);
-
-			// 1) Global minimum 7 NM for all same-level pairs
-			if (distNM < 7) {
-				tooClose = true;
-				break;
-			}
-
-			// 2) Per-group extra spacing when both belong to same spacing group
-			const otherRawGroup = other.scenarioGroup ?? '__none';
-			const otherSpacingKey = spacingGroupKey(otherRawGroup);
-
-			if (groupMinSep > 0 && spacingKey === otherSpacingKey) {
-				if (distNM < groupMinSep) {
-					tooClose = true;
-					break;
-				}
-			}
-		}
-
-		if (!tooClose) {
-			kept.push(cand);
-		}
-	}
-
-	return kept;
+    const kept = [];
+    for (const cand of sorted) {
+        // Attach minSpacingNM from group config if not already set
+        if (cand.minSpacingNM == null) {
+            const cfg = groupCfgMap.get(cand.scenarioGroup ?? cand.group);
+            cand.minSpacingNM = cfg?.minSpacingNM ?? 0;
+        }
+        if (!kept.some(existing => candidatesConflict(existing, cand))) {
+            kept.push(cand);
+        }
+    }
+    return kept;
 }
 
 // ── UI SYNC ──────────────────────────────────────────────────────────────
