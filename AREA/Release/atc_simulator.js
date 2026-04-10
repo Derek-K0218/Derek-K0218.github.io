@@ -1335,15 +1335,15 @@ function drawWaypoints(ctx, S) {
 		ctx.save();
 
 		// Dot only
-		ctx.fillStyle = '#6e7681';
+		ctx.fillStyle = '#777';
 		ctx.beginPath();
-		ctx.arc(p.x, p.y, 1.1, 0, 2 * Math.PI);
+		ctx.arc(p.x, p.y, 0.8, 0, 2 * Math.PI);
 		ctx.fill();
 
 		// Name label (togglable)
 		if (showWpNames && !wp.dotOnly) {
-			ctx.fillStyle = '#6e7681';
-			ctx.font = 'bold 8px monospace';
+			ctx.fillStyle = '#777';
+			ctx.font = 'bold 8px "Chivo Mono"';
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'bottom';
 			ctx.fillText(wp.name, p.x, p.y - 4);
@@ -3653,7 +3653,7 @@ const SCENARIO_ROUTES = [
 		waypoints: ['BUNTA', 'LENKO', 'IKELA', 'IDOSI', 'MYWAY', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
 		fls: ['F270', 'F290', 'F330', 'F370', 'F410'],
 		minAc: 1, maxAc: 4, acSegments: [0, 4], segFrac: { 0: [0.5, 0.99], 3: [0.01, 0.3] },
-		firEntryWp: 'IKELA', firExitWp: 'CANTO', label: '07L IDO'
+		firEntryWp: 'IKELA', firExitWp: 'CANTO', label: '07L IDO', weight: 3
 	},
 	{
 		group: 'DS_IN',
@@ -4509,6 +4509,15 @@ function generateScenario() {
 	rebuildFdlState(); renderFdlPanels(); refreshPanel(); draw();
 }
 
+function pickWeightedRoute(routes) {
+    const totalWeight = routes.reduce((sum, r) => sum + (r.weight ?? 1), 0);
+    let rand = Math.random() * totalWeight;
+    for (const r of routes) {
+        rand -= (r.weight ?? 1);
+        if (rand <= 0) return r;
+    }
+    return routes[routes.length - 1]; // fallback
+}
 function generateCantoScenario() {
 	// Clear existing state
 	aircraft.length = 0;
@@ -4533,7 +4542,7 @@ function generateCantoScenario() {
 
 	while (allCandidates.length < targetCount * 3 && poolAttempts < maxPoolAttempts) {
 		poolAttempts++;
-		const route = cantoRoutes[poolAttempts % cantoRoutes.length];
+		const route = pickWeightedRoute(cantoRoutes);
 		const groupCfg = SCENARIO_GROUPS.find(g => g.group === route.group) ?? {};
 		const cands = generateAcOnRoute(route, groupCfg, []);
 		if (!cands || !cands.length) continue;
@@ -4549,7 +4558,7 @@ function generateCantoScenario() {
 	// Step 2: Shuffle for varied distribution across routes
 	allCandidates = allCandidates.sort(() => Math.random() - 0.5);
 
-	// Step 3: Greedy spacing filter — commit candidates that don't conflict
+	// Step 3: Spacing filter — commit candidates that don't conflict
 	const committed = [];
 	for (const cand of allCandidates) {
 		if (committed.length >= targetCount) break;
@@ -5216,6 +5225,14 @@ function handleDataBlockClick(e) {
 		if (hit(ac.ftRect)) { openFtPopup(ac, sx, sy); return true; }
 	}
 	return false;
+}
+
+// Add this helper once, near the top of your event listeners section:
+function isTypingInInput() {
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
 }
 
 canvasEl.addEventListener('pointerdown', e => {
@@ -6053,7 +6070,7 @@ function confirmAddAc() {
 		lcIndex: null,
 		targetHdg: null, targetGs: null,
 		navMode,          // ← from variable above
-		route: trimRouteFromPosition(JSON.parse(routeSelVal).waypoints, parseFloat(_addAcPendingX.toFixed(2)), parseFloat(_addAcPendingY.toFixed(2))), // ← from variable above
+		route: routeSelVal ? trimRouteFromPosition(JSON.parse(routeSelVal).waypoints, parseFloat(_addAcPendingX.toFixed(2)), parseFloat(_addAcPendingY.toFixed(2))) : [], // ← from variable above
 		originalRoute: [...route],
 		directWp,         // ← from variable above, same object reference as route[0]
 		firEntryWp: firEntryWp ?? (route.length ? route[0] : null),
@@ -6102,9 +6119,9 @@ document.addEventListener('keydown', function (e) {
 		if (crteAcId) { crteAcId = null; draw(); return; }
 		_hideCtxMenu();
 		if (rblMode) { rblBuilding = null; rblMode = null; rblCursorNM = null; updateRblUI(); draw(); }
-	} else if (e.key === 'p' || e.key === 'P') {
+	} else if ((e.key === 'p' || e.key === 'P') && !isTypingInInput()) {
 		document.getElementById('sepProbeBtn')?.click();
-	} else if (e.key === 'r' || e.key === 'R') {
+	} else if ((e.key === 'r' || e.key === 'R') && !isTypingInInput()) {
 		document.getElementById('rblBtn')?.click();
 	}
 });
