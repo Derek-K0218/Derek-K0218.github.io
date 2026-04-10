@@ -1448,7 +1448,6 @@ const FTL_LEVELS_BY_WP = {
 	IKELA: ['F280', 'F300', 'F340', 'F380', 'F400', 'F430'],
 	EPKAL: ['F280', 'F310', 'F320', 'F350', 'F360', 'F390', 'F400'],
 	BEKOL: ['F291', 'F311', 'F331', 'F351', 'F371', 'F391', 'F411'],
-	TAMOT: [], // inbound only, no outbound FTL
 	// add others as needed
 };
 function assignInitialFtl(ac) {
@@ -1462,18 +1461,22 @@ function assignInitialFtl(ac) {
 
 const AC_TYPE_POOL = [
 	// [ICAO type, WTC]
-	['B738', 'M'], ['B738', 'M'], ['B738', 'M'], // weighted common types
-	['A320', 'M'], ['A320', 'M'],
-	['A20N', 'M'], ['A20N', 'M'], ['A20N', 'M'],
+	// Airbus
+	['A306', 'H'], ['A319', 'M'],
+	['A320', 'M'], ['A320', 'M'], ['A320', 'M'],
 	['A321', 'M'], ['A321', 'M'],
+	['A20N', 'M'], ['A20N', 'M'], ['A20N', 'M'],
 	['A21N', 'M'], ['A21N', 'M'],
-	['A319', 'M'], ['B737', 'M'],
-	['B39M', 'M'], ['B38M', 'M'],
-	['A333', 'H'], ['A333', 'H'], ['A339', 'H'],
-	['B788', 'H'], ['B78X', 'H'], ['B789', 'H'],
-	['B77W', 'H'], ['B77W', 'H'], ['B77L', 'H'],
-	['B748', 'H'], ['B744', 'H'],
-	['A359', 'H'], ['A35K', 'H'], ['A388', 'J']
+	['A333', 'H'], ['A333', 'H'], ['A333', 'H'], ['A339', 'H'],
+	['A343', 'H'], ['A346', 'H'],
+	['A359', 'H'], ['A359', 'H'], ['A35K', 'H'], ['A35K', 'H'],
+	['A388', 'J'],
+	// Boeing
+	['B737', 'M'], ['B738', 'M'], ['B738', 'M'], ['B739', 'M'], ['B739', 'M'],
+	['B38M', 'M'], ['B39M', 'M'],
+	['B744', 'H'], ['B748', 'H'], ['B748', 'H'],
+	['B77L', 'H'], ['B773', 'H'], ['B773', 'H'], ['B77W', 'H'], ['B77W', 'H'],
+	['B788', 'H'], ['B789', 'H'], ['B789', 'H'], ['B78X', 'H'],
 ];
 function randomAcType() {
 	return AC_TYPE_POOL[Math.floor(Math.random() * AC_TYPE_POOL.length)];
@@ -3049,14 +3052,16 @@ const WAYPOINTS = [
 	{ name: "72PCA", x: -138.22, y: -316.16, dotOnly: true },
 	{ name: 'ABBEY', x: 31.03, y: 146.03 },
 	{ name: 'ADBIN', x: -87.65, y: 127.93, dotOnly: true },
+	{ name: 'AGPOR', x: -233.54, y: 27.99, dotOnly: true },
 	{ name: 'AKOTA', x: 159.88, y: -202.44, dotOnly: true },
 	{ name: 'ALDIS', x: 298.55, y: -74.29, dotOnly: true },
-	{ name: 'ALDOM', x: 0.0, y: 0.0 },
+	{ name: 'ALDOM', x: 0.0, y: 0.0 }, // 195009.33N 1142226.42E
 	{ name: 'ALLEY', x: -33.19, y: 75.03 },
 	{ name: "ANDRE", x: 317.09, y: 114.31, dotOnly: true },
 	{ name: 'ANPOG', x: 202.08, y: 166.09 },
 	{ name: 'APAKA', x: 229.74, y: 241.67, dotOnly: true },
 	{ name: 'ASOBA', x: 11.08, y: -147.79 },
+	{ name: 'ASSAD', x: -379.46, y: -89.66, dotOnly: true },
 	{ name: 'ATBUD', x: 13.76, y: -236.13 },
 	{ name: 'AVBEP', x: 93.03, y: 184.76, dotOnly: true },
 	{ name: 'AVMUP', x: 258.76, y: -110.56, dotOnly: true },
@@ -3064,6 +3069,7 @@ const WAYPOINTS = [
 	{ name: 'BEKOL', x: -13.58, y: 162.44 },
 	{ name: 'BESDA', x: 135.75, y: 131.9 },
 	{ name: 'BETTY', x: 10.43, y: 99.02 },
+	{ name: 'BHY', x: -277.38, y: 105.04, dotOnly: true },
 	{ name: 'BIDIG', x: -35.63, y: 207.69, dotOnly: true },
 	{ name: 'BIGEX', x: -19.41, y: 143.02 },
 	{ name: 'BIGRO', x: -143.77, y: 104.04 },
@@ -3082,6 +3088,7 @@ const WAYPOINTS = [
 	{ name: 'CYBER', x: 10.1, y: 60.67 },
 	{ name: 'CYRUS', x: 234.66, y: 142.79, dotOnly: true },
 	{ name: 'DABGI', x: 16.87, y: -339.49, dotOnly: true },
+	{ name: 'DABUB', x: -292.69, y: -18.97, dotOnly: true },
 	{ name: 'DADON', x: 204.81, y: 146.42 },
 	{ name: 'DAGBU', x: -125.37, y: 42.81 },
 	{ name: 'DAKTO', x: 45.92, y: 63.36 },
@@ -3109,6 +3116,7 @@ const WAYPOINTS = [
 	{ name: 'GIVIV', x: -187.31, y: 67.07 },
 	{ name: 'GLN', x: -19.23, y: 172.34, dotOnly: true },
 	{ name: 'GOBBI', x: -47.79, y: 77.98 },
+	{ name: 'HK693', x: -214.13, y: 21.02, dotOnly: true },
 	{ name: 'HOCKY', x: 11.32, y: 45.67 },
 	{ name: 'IDOSI', x: -105.77, y: -50.16 },
 	{ name: 'IDUMA', x: -23.83, y: 183.62 },
@@ -3152,6 +3160,7 @@ const WAYPOINTS = [
 	{ name: 'NOBAD', x: 64.08, y: 24.57 },
 	{ name: 'NOMAN', x: 129.68, y: 9.84 },
 	{ name: 'NOMAR', x: -29.2, y: 220.34, dotOnly: true },
+	{ name: 'NONEM', x: -312.29, y: -34.84, dotOnly: true },
 	{ name: 'NOPER', x: 97.45, y: 60.65 },
 	{ name: 'NUDPI', x: 70.58, y: 124.16 },
 	{ name: 'OLDID', x: 176.43, y: 189.84 },
@@ -3519,8 +3528,8 @@ const AIRWAYS = [
 	{ color: '#ffea00', group: 'TRE', waypoints: ['NUDPI', 'SOUSA', 'BESDA', 'LIMSU', 'LELIM'] },	// VMMC-LL
 	{ color: '#ffea00', group: 'TRE', waypoints: ['NUDPI', 'SOUSA', 'DOTMI'] },	// VMMC-DT
 	// EXTERNAL ROUTE
-	{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'GIVIV', 'LH'] },	// A202
-	{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'ISBIG', 'SAMAS'] },	// R339
+	{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'GIVIV', 'LH', 'BHY'] },	// R339
+	{ color: '#888888', group: 'EX_RTE', waypoints: ['SIKOU', 'ISBIG', 'SAMAS', 'AGPOR', 'DABUB', 'NONEM', 'ASSAD'] },	// A202
 	{ color: '#888888', group: 'EX_RTE', waypoints: ['IKELA', 'LENKO', 'BUNTA'] },	// A1(W)
 	{ color: '#888888', group: 'EX_RTE', waypoints: ['EPKAL', 'EGEMU', 'EXOTO'] },	// L642
 	{ color: '#888888', group: 'EX_RTE', waypoints: ['72PCA', 'DONDA', 'DOSUT'] },	// M771
@@ -3616,23 +3625,30 @@ const SCENARIO_ROUTES = [
 	// INBOUND LANDING VHHH
 	{
 		group: 'SI_IN',
-		waypoints: ['SAMAS', 'ISBIG', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
-		fls: ['F187', 'F266', 'F291', 'F331', 'F351', 'F371', 'F391'],
-		minAc: 1, maxAc: 3, acSegments: [0, 3], segFrac: { 2: [0.05, 0.2] },
+		waypoints: ['HK693', 'SAMAS', 'ISBIG', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
+		fls: ['F187'],
+		minAc: 1, maxAc: 2, acSegments: [0, 3], segFrac: { 2: [0.01, 0.2] },
 		firEntryWp: 'SIKOU', firExitWp: 'CANTO', label: '07L SIK'
 	},
 	{
 		group: 'SI_IN',
-		waypoints: ['LH', 'GIVIV', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
+		waypoints: ['ASSAD', 'NONEM', 'DABUB', 'AGPOR', 'SAMAS', 'ISBIG', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
+		fls: ['F266', 'F291', 'F331', 'F351', 'F371', 'F391'],
+		minAc: 1, maxAc: 3, acSegments: [0, 7], segFrac: { 6: [0.01, 0.2] },
+		firEntryWp: 'SIKOU', firExitWp: 'CANTO', label: '07L SIK'
+	},
+	{
+		group: 'SI_IN',
+		waypoints: ['BHY', 'LH', 'GIVIV', 'SIKOU', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
 		fls: ['F187', 'F331', 'F351', 'F371', 'F391'],
-		minAc: 1, maxAc: 3, acSegments: [0, 3], segFrac: { 2: [0.05, 0.2] },
+		minAc: 1, maxAc: 3, acSegments: [0, 4], segFrac: { 3: [0.01, 0.2] },
 		firEntryWp: 'SIKOU', firExitWp: 'CANTO', label: '07L SIK'
 	},
 	{
 		group: 'IK_IN',
 		waypoints: ['BUNTA', 'LENKO', 'IKELA', 'IDOSI', 'MYWAY', 'GAMBA', 'MAPLE', 'COMBI', 'ROCCA', 'CANTO', 'BIGEX'],
 		fls: ['F270', 'F290', 'F330', 'F370', 'F410'],
-		minAc: 1, maxAc: 4, acSegments: [1, 4], segFrac: { 0: [0.5, 0.95], 2: [0.05, 0.3] },
+		minAc: 1, maxAc: 4, acSegments: [0, 4], segFrac: { 0: [0.5, 0.99], 3: [0.01, 0.3] },
 		firEntryWp: 'IKELA', firExitWp: 'CANTO', label: '07L IDO'
 	},
 	{
@@ -4521,13 +4537,13 @@ function generateCantoScenario() {
 function commitScenarioAircraft(candidates) {
 	if (!candidates || !candidates.length) return;
 
-	const targetTotal = getScenarioTargetCount();
-
 	// 1) Apply spacing rules
 	const pruned = pruneBySpacing(candidates);
 
+	const targetTotal = getScenarioTargetCount();
+
 	// 2) Hard trim to scenGenCount (and safety MAX_AC)
-	const hardCap = Math.min(targetTotal, MAX_AC);
+	const hardCap = Math.ceil(targetTotal * 1.5);
 	const finalList = pruned.slice(0, hardCap);
 
 	// 3) Spawn each into aircraft[]
@@ -4535,7 +4551,6 @@ function commitScenarioAircraft(candidates) {
 		if (aircraft.length >= MAX_AC) return; // extra safety
 		spawnGeneratedAc(c);
 	});
-
 	refreshPanel();
 }
 
@@ -5867,6 +5882,34 @@ function openAddAcPopup(nx, ny) {
 	setTimeout(() => document.getElementById('aaCallsign').focus(), 60);
 }
 
+function trimRouteFromPosition(fullRoute, spawnX, spawnY) {
+	// Find which segment the spawn point is closest to
+	let bestSeg = 0;
+	let bestDist = Infinity;
+
+	for (let i = 0; i < fullRoute.length - 1; i++) {
+		const wpA = WAYPOINTS.find(w => w.name === fullRoute[i]);
+		const wpB = WAYPOINTS.find(w => w.name === fullRoute[i + 1]);
+		if (!wpA || !wpB) continue;
+
+		const dist = distPointToSegment(spawnX, spawnY, wpA.x, wpA.y, wpB.x, wpB.y);
+		if (dist < bestDist) {
+			bestDist = dist;
+			bestSeg = i;
+		}
+	}
+	// Keep only from the next waypoint onward
+	return fullRoute.slice(bestSeg + 1);
+}
+
+function distPointToSegment(px, py, ax, ay, bx, by) {
+	const dx = bx - ax, dy = by - ay;
+	const lenSq = dx * dx + dy * dy;
+	if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+	const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+	return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
 function closeaddAcModel() {
 	document.getElementById('addAcModel').classList.remove('open');
 }
@@ -5982,7 +6025,7 @@ function confirmAddAc() {
 		lcIndex: null,
 		targetHdg: null, targetGs: null,
 		navMode,          // ← from variable above
-		route,            // ← from variable above
+		route: trimRouteFromPosition(JSON.parse(routeSelVal).waypoints, parseFloat(_addAcPendingX.toFixed(2)),  parseFloat(_addAcPendingY.toFixed(2))), // ← from variable above
 		originalRoute: [...route],
 		directWp,         // ← from variable above, same object reference as route[0]
 		firEntryWp: firEntryWp ?? (route.length ? route[0] : null),
