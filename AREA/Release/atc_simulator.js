@@ -16,31 +16,34 @@ const TMarc_radiusNM = 86.068;
 // Aicraft Performance
 const AC_PERF = {
 	//          climbRt  crClRt  desRt   climbMach descMach cruiseMach maxMach  crossAlt climbIAS desIAS turnRate
-	B737: { climbRt: 2200, cruiseClimbRt: 1400, descentRt: 1800, climbMach: 0.76, descMach: 0.76, cruiseMach: 0.785, maxMach: 0.82, climbIAS: 280, descentIAS: 280 },
-	B738: { climbRt: 2500, cruiseClimbRt: 1500, descentRt: 1800, climbMach: 0.76, descMach: 0.76, cruiseMach: 0.785, maxMach: 0.82, climbIAS: 280, descentIAS: 280 },
-	B39M: { climbRt: 2500, cruiseClimbRt: 1500, descentRt: 1800, climbMach: 0.77, descMach: 0.77, cruiseMach: 0.790, maxMach: 0.825, climbIAS: 280, descentIAS: 280 },
-	B38M: { climbRt: 2500, cruiseClimbRt: 1500, descentRt: 1800, climbMach: 0.77, descMach: 0.77, cruiseMach: 0.790, maxMach: 0.825, climbIAS: 280, descentIAS: 280 },
-	A319: { climbRt: 2200, cruiseClimbRt: 1400, descentRt: 1800, climbMach: 0.75, descMach: 0.75, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 275, descentIAS: 275 },
-	A320: { climbRt: 2300, cruiseClimbRt: 1500, descentRt: 1800, climbMach: 0.75, descMach: 0.75, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 278, descentIAS: 278 },
-	A20N: { climbRt: 2400, cruiseClimbRt: 1500, descentRt: 1800, climbMach: 0.76, descMach: 0.76, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 278, descentIAS: 278 },
-	A321: { climbRt: 2200, cruiseClimbRt: 1400, descentRt: 1700, climbMach: 0.76, descMach: 0.76, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 280, descentIAS: 280 },
-	A21N: { climbRt: 2300, cruiseClimbRt: 1500, descentRt: 1700, climbMach: 0.76, descMach: 0.76, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 280, descentIAS: 280 },
-	A333: { climbRt: 1800, cruiseClimbRt: 1200, descentRt: 1500, climbMach: 0.80, descMach: 0.80, cruiseMach: 0.820, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
-	A339: { climbRt: 1900, cruiseClimbRt: 1300, descentRt: 1500, climbMach: 0.80, descMach: 0.80, cruiseMach: 0.820, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
-	B788: { climbRt: 2000, cruiseClimbRt: 1400, descentRt: 1600, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.850, maxMach: 0.90, climbIAS: 290, descentIAS: 290 },
-	B78X: { climbRt: 2000, cruiseClimbRt: 1400, descentRt: 1600, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.850, maxMach: 0.90, climbIAS: 290, descentIAS: 290 },
-	B789: { climbRt: 2000, cruiseClimbRt: 1400, descentRt: 1600, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.850, maxMach: 0.90, climbIAS: 290, descentIAS: 290 },
-	B77W: { climbRt: 1800, cruiseClimbRt: 1200, descentRt: 1400, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.840, maxMach: 0.89, climbIAS: 290, descentIAS: 290 },
-	B77L: { climbRt: 1700, cruiseClimbRt: 1100, descentRt: 1400, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.840, maxMach: 0.89, climbIAS: 290, descentIAS: 290 },
-	B773: { climbRt: 1800, cruiseClimbRt: 1200, descentRt: 1400, climbMach: 0.82, descMach: 0.84, cruiseMach: 0.840, maxMach: 0.89, climbIAS: 300, descentIAS: 300 },
-	B762: { climbRt: 2500, cruiseClimbRt: 1400, descentRt: 1600, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.800, maxMach: 0.84, climbIAS: 290, descentIAS: 290 },
-	B748: { climbRt: 1600, cruiseClimbRt: 1000, descentRt: 1300, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.855, maxMach: 0.90, climbIAS: 290, descentIAS: 290 },
-	B744: { climbRt: 1600, cruiseClimbRt: 1000, descentRt: 1300, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.845, maxMach: 0.89, climbIAS: 290, descentIAS: 290 },
-	A359: { climbRt: 2000, cruiseClimbRt: 1400, descentRt: 1500, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.850, maxMach: 0.89, climbIAS: 290, descentIAS: 290 },
-	A35K: { climbRt: 1900, cruiseClimbRt: 1300, descentRt: 1500, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.850, maxMach: 0.89, climbIAS: 290, descentIAS: 290 },
-	A388: { climbRt: 1400, cruiseClimbRt: 900, descentRt: 1200, climbMach: 0.82, descMach: 0.82, cruiseMach: 0.850, maxMach: 0.89, climbIAS: 285, descentIAS: 285 },
+	A306: { climbRt: 2700, cruiseClimbRt: 800, descentRt: 1500, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.82, climbIAS: 290, descentIAS: 290 },
+	A319: { climbRt: 1850, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.83, climbIAS: 290, descentIAS: 290 },
+	A320: { climbRt: 1700, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.83, climbIAS: 290, descentIAS: 290 },
+	A321: { climbRt: 1900, cruiseClimbRt: 1000, descentRt: 1700, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.83, climbIAS: 290, descentIAS: 290 },
+	A20N: { climbRt: 1700, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 290, descentIAS: 290 },
+	A21N: { climbRt: 1350, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 290, descentIAS: 290 },
+	A333: { climbRt: 1650, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.80, descMach: 0.81, cruiseMach: 0.810, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
+	A339: { climbRt: 1350, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.80, descMach: 0.81, cruiseMach: 0.810, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
+	A343: { climbRt: 1200, cruiseClimbRt: 700, descentRt: 1500, climbMach: 0.80, descMach: 0.81, cruiseMach: 0.820, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
+	A346: { climbRt: 1100, cruiseClimbRt: 800, descentRt: 1500, climbMach: 0.81, descMach: 0.81, cruiseMach: 0.820, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
+	A359: { climbRt: 1950, cruiseClimbRt: 1400, descentRt: 1500, climbMach: 0.82, descMach: 0.85, cruiseMach: 0.850, maxMach: 0.89, climbIAS: 300, descentIAS: 250 },
+	A35K: { climbRt: 1750, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.82, descMach: 0.85, cruiseMach: 0.850, maxMach: 0.89, climbIAS: 300, descentIAS: 270 },
+	A388: { climbRt: 1900, cruiseClimbRt: 1000, descentRt: 1500, climbMach: 0.83, descMach: 0.83, cruiseMach: 0.850, maxMach: 0.89, climbIAS: 320, descentIAS: 300 },
+	B738: { climbRt: 2000, cruiseClimbRt: 1500, descentRt: 1800, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.82, climbIAS: 290, descentIAS: 280 },
+	B739: { climbRt: 2000, cruiseClimbRt: 1500, descentRt: 2000, climbMach: 0.72, descMach: 0.79, cruiseMach: 0.780, maxMach: 0.82, climbIAS: 290, descentIAS: 280 },
+	B38M: { climbRt: 2150, cruiseClimbRt: 1500, descentRt: 2000, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.825, climbIAS: 290, descentIAS: 290 },
+	B39M: { climbRt: 1900, cruiseClimbRt: 1400, descentRt: 2000, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.790, maxMach: 0.825, climbIAS: 290, descentIAS: 290 },
+	B744: { climbRt: 1500, cruiseClimbRt: 1500, descentRt: 2000, climbMach: 0.75, descMach: 0.85, cruiseMach: 0.850, maxMach: 0.90, climbIAS: 300, descentIAS: 300 },
+	B748: { climbRt: 1750, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.85, descMach: 0.85, cruiseMach: 0.860, maxMach: 0.90, climbIAS: 260, descentIAS: 250 },
+	B763: { climbRt: 2250, cruiseClimbRt: 1000, descentRt: 2000, climbMach: 0.72, descMach: 0.72, cruiseMach: 0.800, maxMach: 0.86, climbIAS: 290, descentIAS: 290 },
+	B77L: { climbRt: 1750, cruiseClimbRt: 2000, descentRt: 2000, climbMach: 0.83, descMach: 0.84, cruiseMach: 0.840, maxMach: 0.89, climbIAS: 280, descentIAS: 240 },
+	B773: { climbRt: 2250, cruiseClimbRt: 1500, descentRt: 2000, climbMach: 0.82, descMach: 0.84, cruiseMach: 0.840, maxMach: 0.89, climbIAS: 300, descentIAS: 300 },
+	B77W: { climbRt: 2250, cruiseClimbRt: 1500, descentRt: 2000, climbMach: 0.83, descMach: 0.84, cruiseMach: 0.840, maxMach: 0.89, climbIAS: 300, descentIAS: 300 },
+	B788: { climbRt: 1750, cruiseClimbRt: 1500, descentRt: 2700, climbMach: 0.79, descMach: 0.84, cruiseMach: 0.850, maxMach: 0.90, climbIAS: 290, descentIAS: 300 },
+	B789: { climbRt: 1750, cruiseClimbRt: 1000, descentRt: 2500, climbMach: 0.84, descMach: 0.85, cruiseMach: 0.850, maxMach: 0.90, climbIAS: 290, descentIAS: 300 },
+	B78X: { climbRt: 1750, cruiseClimbRt: 1000, descentRt: 2500, climbMach: 0.84, descMach: 0.85, cruiseMach: 0.860, maxMach: 0.90, climbIAS: 290, descentIAS: 300 },
 };
-const AC_PERF_DEFAULT = { climbRt: 1800, cruiseClimbRt: 1200, descentRt: 1500, climbMach: 0.78, descMach: 0.78, cruiseMach: 0.82, maxMach: 0.86, climbIAS: 280, descentIAS: 280 };
+const AC_PERF_DEFAULT = { climbRt: 1800, cruiseClimbRt: 1200, descentRt: 1500, climbMach: 0.79, descMach: 0.79, cruiseMach: 0.82, maxMach: 0.86, climbIAS: 280, descentIAS: 280 };
 function getPerf(type) { return AC_PERF[type] ?? AC_PERF_DEFAULT; }
 
 // Returns turn rate in °/sec given current TAS
@@ -1463,20 +1466,21 @@ const AC_TYPE_POOL = [
 	// [ICAO type, WTC]
 	// Airbus
 	['A306', 'H'], ['A319', 'M'],
-	['A320', 'M'], ['A320', 'M'], ['A320', 'M'],
+	['A320', 'M'], ['A320', 'M'],
 	['A321', 'M'], ['A321', 'M'],
 	['A20N', 'M'], ['A20N', 'M'], ['A20N', 'M'],
-	['A21N', 'M'], ['A21N', 'M'],
+	['A21N', 'M'], ['A21N', 'M'], ['A21N', 'M'],
 	['A333', 'H'], ['A333', 'H'], ['A333', 'H'], ['A339', 'H'],
 	['A343', 'H'], ['A346', 'H'],
-	['A359', 'H'], ['A359', 'H'], ['A35K', 'H'], ['A35K', 'H'],
+	['A359', 'H'], ['A359', 'H'], ['A359', 'H'], ['A35K', 'H'], ['A35K', 'H'],
 	['A388', 'J'],
 	// Boeing
-	['B737', 'M'], ['B738', 'M'], ['B738', 'M'], ['B739', 'M'], ['B739', 'M'],
+	['B738', 'M'], ['B738', 'M'], ['B739', 'M'],
 	['B38M', 'M'], ['B39M', 'M'],
 	['B744', 'H'], ['B748', 'H'], ['B748', 'H'],
-	['B77L', 'H'], ['B773', 'H'], ['B773', 'H'], ['B77W', 'H'], ['B77W', 'H'],
-	['B788', 'H'], ['B789', 'H'], ['B789', 'H'], ['B78X', 'H'],
+	['B762', 'H'], ['B763', 'H'],
+	['B77L', 'H'], ['B773', 'H'], ['B773', 'H'], ['B77W', 'H'], ['B77W', 'H'], ['B77W', 'H'],
+	['B788', 'H'], ['B788', 'H'], ['B789', 'H'], ['B789', 'H'], ['B78X', 'H'],
 ];
 function randomAcType() {
 	return AC_TYPE_POOL[Math.floor(Math.random() * AC_TYPE_POOL.length)];
