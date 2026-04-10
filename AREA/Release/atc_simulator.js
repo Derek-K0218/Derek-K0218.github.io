@@ -4426,15 +4426,18 @@ function getScenarioTargetCount() {
 }
 
 function generateScenario() {
-	// Clear existing aircraft & probes, reset sim state
-	aircraft = [];
-	probes = [];
+	// Clear existing aircraft, probes, reset sim state
+	aircraft.length = 0;
+	probes.length = 0;
+	colourPool = [...PROBE_COLOURS];
+	probeBuilding = null; probeMode = null;
 	selectedAcId = null;
-	simTimeSec = 0;
-	simRunning = false;
-	updateSimClock();
-	updateSimButtons();
+	simTimeSec = 0; simRunning = false;
+	updateSimClock(); updateSimButtons();
 
+	const targetCount = getScenarioTargetCount();
+
+	// Build a map of group → routes
 	const groupMap = {};
 	SCENARIO_ROUTES.forEach(r => {
 		if (!r.group) return;
@@ -4442,47 +4445,73 @@ function generateScenario() {
 		groupMap[r.group].push(r);
 	});
 
-	const committed = []; // accumulated generated candidates
-
-	// For each scenario group (ALLEY_DEP, KA_IN, etc.)
+	// Step 1: Generate ALL candidates from every group/route
+	let allCandidates = [];
 	SCENARIO_GROUPS.forEach(groupCfg => {
-		const routes = groupMap[groupCfg.group] || [];
-		if (!routes.length) return;
+		const routes = groupMap[groupCfg.group];
+		if (!routes || !routes.length) return;
 
 		const minTotal = groupCfg.min ?? 0;
 		const maxTotal = groupCfg.max ?? minTotal;
-		let groupTarget = rndInt(minTotal, maxTotal);
-		groupTarget = Math.max(minTotal, Math.min(maxTotal, groupTarget));
-		if (groupTarget <= 0) return;
+		const groupTarget = rndInt(minTotal, maxTotal);
+		if (groupTarget === 0) return;
 
-		let groupCount = 0;
+		// Generate enough candidates from this group's routes
+		let groupPool = [];
+		const maxGroupAttempts = groupTarget * 10;
+		let attempts = 0;
 
-		// Loop each route, letting generateAcOnRoute respect per‑route minAc/maxAc
-		routes.forEach(airway => {
-			if (groupCount >= groupTarget) return;
-
-			const cand = generateAcOnRoute(airway, groupCfg, committed);
-			if (!cand || !cand.length) return;
-
-			cand.forEach(c => {
-				if (groupCount >= groupTarget) return; // enforce per‑group max
-				committed.push({
+		while (groupPool.length < groupTarget * 3 && attempts < maxGroupAttempts) {
+			attempts++;
+			const route = routes[attempts % routes.length];
+			const cands = generateAcOnRoute(route, groupCfg, []);
+			if (!cands || !cands.length) continue;
+			for (const c of cands) {
+				groupPool.push({
 					group: groupCfg.group,
 					minSpacingNM: groupCfg.minSpacingNM ?? 0,
 					...c
 				});
-				groupCount++;
+			}
+		}
+
+		// Shuffle within the group for variety
+		groupPool = groupPool.sort(() => Math.random() - 0.5);
+
+		// Greedy spacing filter within this group, cap to groupTarget
+		const groupCommitted = [];
+		for (const cand of groupPool) {
+			if (groupCommitted.length >= groupTarget) break;
+
+			const conflict = allCandidates.concat(groupCommitted).some(existing => {
+				const sameLevel = Math.round(existing.altFt / 1000) === Math.round(flToAltFt(cand.fl) / 1000);
+				if (!sameLevel) return false;
+				const dist = Math.hypot(existing.x - cand.x, existing.y - cand.y);
+				const globalMin = 7;
+				const groupMin = (existing.group === cand.group)
+					? Math.max(existing.minSpacingNM ?? 0, cand.minSpacingNM ?? 0)
+					: 0;
+				return dist < Math.max(globalMin, groupMin);
 			});
-		});
+
+			if (!conflict) groupCommitted.push(cand);
+		}
+
+		allCandidates.push(...groupCommitted);
 	});
 
-	// Now we have "overflow" candidates: respect spacing and scenGenCount here
-	commitScenarioAircraft(committed);
+	// Step 2: Shuffle across all groups and hard-cap to targetCount
+	allCandidates = allCandidates.sort(() => Math.random() - 0.5);
+	const finalList = allCandidates.slice(0, Math.min(targetCount, MAX_AC));
+
+	// Step 3: Spawn directly — bypass commitScenarioAircraft's re-cap
+	finalList.forEach(c => {
+		if (aircraft.length >= MAX_AC) return;
+		spawnGeneratedAc(c);
+	});
 
 	initialScenarioSnapshot = aircraft.map(a => JSON.parse(JSON.stringify(a)));
-	rebuildFdlState();
-	renderFdlPanels();
-	draw();
+	rebuildFdlState(); renderFdlPanels(); refreshPanel(); draw();
 }
 
 function generateCantoScenario() {
@@ -4499,38 +4528,59 @@ function generateCantoScenario() {
 	const cantoRoutes = SCENARIO_ROUTES.filter(r => r.firExitWp === 'CANTO');
 	if (!cantoRoutes.length) return;
 
-	// Reuse the same count the user set in the UI
 	const targetCount = getScenarioTargetCount();
 
-	// Shuffle routes so distribution is random each time
-	const shuffled = [...cantoRoutes].sort(() => Math.random() - 0.5);
+	// Step 1: Generate ALL candidates from every route ignoring per-route minAc/maxAc caps
+	// by calling generateAcOnRoute repeatedly until we have enough in the pool
+	let allCandidates = [];
+	const maxPoolAttempts = targetCount * 1.5;
+	let poolAttempts = 0;
 
-	const committed = [];
-	let placed = 0;
-	let attempts = 0;
-	const maxAttempts = targetCount * 10; // safety net
-
-	while (placed < targetCount && attempts < maxAttempts) {
-		attempts++;
-		const route = shuffled[placed % shuffled.length];
-
-		// Find the matching group config for spacing/FL rules
+	while (allCandidates.length < targetCount * 3 && poolAttempts < maxPoolAttempts) {
+		poolAttempts++;
+		const route = cantoRoutes[poolAttempts % cantoRoutes.length];
 		const groupCfg = SCENARIO_GROUPS.find(g => g.group === route.group) ?? {};
-
-		const cand = generateAcOnRoute(route, groupCfg, committed);
-		if (!cand || !cand.length) continue; // spacing conflict, skip
-
-		committed.push({
-			group: route.group,
-			minSpacingNM: groupCfg.minSpacingNM ?? 0,
-			...cand[0]
-		});
-		placed++;
+		const cands = generateAcOnRoute(route, groupCfg, []);
+		if (!cands || !cands.length) continue;
+		for (const c of cands) {
+			allCandidates.push({
+				group: route.group,
+				minSpacingNM: groupCfg.minSpacingNM ?? 0,
+				...c
+			});
+		}
 	}
 
-	commitScenarioAircraft(committed);
+	// Step 2: Shuffle for varied distribution across routes
+	allCandidates = allCandidates.sort(() => Math.random() - 0.5);
+
+	// Step 3: Greedy spacing filter — commit candidates that don't conflict
+	const committed = [];
+	for (const cand of allCandidates) {
+		if (committed.length >= targetCount) break;
+
+		const conflict = committed.some(existing => {
+			const sameLevel = Math.round(existing.altFt / 1000) === Math.round(cand.altFt / 1000);
+			if (!sameLevel) return false;
+			const dist = Math.hypot(existing.x - cand.x, existing.y - cand.y);
+			const globalMin = 7;
+			const groupMin = (existing.group === cand.group)
+				? Math.max(existing.minSpacingNM ?? 0, cand.minSpacingNM ?? 0)
+				: 0;
+			return dist < Math.max(globalMin, groupMin);
+		});
+
+		if (!conflict) committed.push(cand);
+	}
+
+	// Step 4: Spawn directly — bypass commitScenarioAircraft's targetCount re-cap
+	committed.forEach(c => {
+		if (aircraft.length >= MAX_AC) return;
+		spawnGeneratedAc(c);
+	});
+
 	initialScenarioSnapshot = aircraft.map(a => JSON.parse(JSON.stringify(a)));
-	rebuildFdlState(); renderFdlPanels(); draw();
+	rebuildFdlState(); renderFdlPanels(); refreshPanel(); draw();
 }
 
 // NEW: bridge from candidate objects → aircraft[] using spacing + spawner
@@ -6025,7 +6075,7 @@ function confirmAddAc() {
 		lcIndex: null,
 		targetHdg: null, targetGs: null,
 		navMode,          // ← from variable above
-		route: trimRouteFromPosition(JSON.parse(routeSelVal).waypoints, parseFloat(_addAcPendingX.toFixed(2)),  parseFloat(_addAcPendingY.toFixed(2))), // ← from variable above
+		route: trimRouteFromPosition(JSON.parse(routeSelVal).waypoints, parseFloat(_addAcPendingX.toFixed(2)), parseFloat(_addAcPendingY.toFixed(2))), // ← from variable above
 		originalRoute: [...route],
 		directWp,         // ← from variable above, same object reference as route[0]
 		firEntryWp: firEntryWp ?? (route.length ? route[0] : null),
@@ -6035,7 +6085,7 @@ function confirmAddAc() {
 		clearedHdgDisplay: null,
 		cflDisplay: null,
 		clearedSpdDisplay: null,
-		freeTextStatic: routeLabel,
+		freeTextStatic: routeLabel ?? '',
 		freeTextInput: '',
 		_cflSteadyCount: 0, cflApplied: false, crossoverAlt: null,
 		dbRect: null, cflRect: null, chdRect: null, spdRect: null, ftRect: null
