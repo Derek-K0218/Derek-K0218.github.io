@@ -3000,7 +3000,7 @@ function tryRemoveRblByClick(e) {
 }
 
 function drawRbls(ctx, S) {
-	const RBL_C = '#f5c518';
+	const RBL_C = '#ff0';
 	ctx.font = '11px "Chivo Mono"';
 	ctx.textBaseline = 'top';
 
