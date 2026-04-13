@@ -2854,7 +2854,7 @@ function tryRemoveProbeByDataBlockClick(e) {
 
 // ── RBL SYSTEM ────────────────────────────────────────────────────────────
 const MAX_RBLS = 30;
-const RBL_COLOUR = '#f5c518';
+const RBL_COLOUR = '#rbl';
 let rblList = [], rblMode = null, rblBuilding = null, rblIdCtr = 0;
 let rblCursorNM = null; // live cursor position in NM during SELECT2
 
